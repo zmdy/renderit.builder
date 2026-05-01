@@ -4,6 +4,7 @@
  */
 
 import { WIZARD_STEPS } from './config.js';
+import { renderStep1, initStep1 } from './steps/step-1-mode.js';
 
 // Estado global da sessão de build
 export const state = {
@@ -66,13 +67,21 @@ function renderCurrentStep() {
   const container = document.getElementById('wizard-container');
   if (!container) return;
 
-  // Por enquanto, apenas exibe o nome do passo para debug visual
-  const stepName = WIZARD_STEPS[state.currentStep];
-  container.innerHTML = `
-    <div class="flex-1 flex flex-col items-center justify-center fade-in">
-      <h2 class="text-2xl font-bold text-text-3 uppercase tracking-widest opacity-20">${stepName}</h2>
-    </div>
-  `;
+  // Lógica de roteamento de passos
+  switch (state.currentStep) {
+    case 0:
+      container.innerHTML = renderStep1();
+      initStep1();
+      break;
+
+    default:
+      const stepName = WIZARD_STEPS[state.currentStep];
+      container.innerHTML = `
+        <div class="flex-1 flex flex-col items-center justify-center fade-in">
+          <h2 class="text-2xl font-bold text-text-3 uppercase tracking-widest opacity-20">${stepName}</h2>
+        </div>
+      `;
+  }
 }
 
 /**
@@ -117,6 +126,13 @@ function updateNavButtons() {
       btnNext.classList.add('hidden');
     } else {
       btnNext.classList.remove('hidden');
+    }
+
+    // Validação específica por passo
+    if (state.currentStep === 0) {
+      btnNext.disabled = !state.mode;
+    } else {
+      btnNext.disabled = false;
     }
   }
 }

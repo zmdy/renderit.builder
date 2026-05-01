@@ -30,3 +30,4 @@ Example
 [01-05-26 19:10] CREATE - Sprint 2.0.2 UI Styles: Implemented assets/css/builder.css with design tokens, component-specific styles (dropzone, cards, preview), premium animations, and responsive media queries.
 [01-05-26 19:15] CREATE - Sprint 2.0.3 Wizard Config: Implemented wizard/config.js with global constants, repository URLs, and wizard step definitions.
 [01-05-26 19:25] CREATE - Sprint 2.0.4 Wizard Controller: Implemented wizard/wizard.js as the main UI orchestrator. Added global state management, step-by-step navigation logic, and automatic UI updates for indicators and navigation controls.
+[01-05-26 19:35] CREATE - Sprint 2.1 Step 1 Mode: Implemented wizard/steps/step-1-mode.js with interactive mode selection cards. Integrated selection logic with global state and dynamic footer navigation controls.
