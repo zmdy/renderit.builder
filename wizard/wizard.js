@@ -112,7 +112,7 @@ function updateStepIndicator() {
 /**
  * Atualiza o estado dos botões de navegação no footer
  */
-function updateNavButtons() {
+export function updateNavButtons() {
   const btnPrev = document.getElementById('btn-prev');
   const btnNext = document.getElementById('btn-next');
 
