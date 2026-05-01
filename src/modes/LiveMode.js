@@ -67,7 +67,7 @@ export function extractAndEncodeLiveZones(html) {
     if (!trimmed) return match;
 
     const encoded = encodeBase64(trimmed);
-    const tagWithTemplate = openTag.replace('>', ` data-template="${encoded}">`);
+    const tagWithTemplate = openTag.replace('>', ` data-renderit-template="${encoded}">`);
     const loading = '<div class="renderit-loading"></div>';
     return `${tagWithTemplate}${loading}${closeTag}`;
   });

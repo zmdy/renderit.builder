@@ -13,60 +13,51 @@
     return path.split('.').reduce((acc, k) => (acc != null ? acc[k] : ''), data) ?? '';
   }
 
-  function renderTemplate(tpl, data) {
-    // FOREACH
-    tpl = tpl.replace(/%FOREACH\s+(\S+)%([\s\S]*?)%ENDFOREACH%/g, (_, key, body) => {
+  function renderForeach(tpl, data) {
+    return tpl.replace(/%FOREACH\s+(\S+)%([\s\S]*?)%ENDFOREACH%/g, (_, key, body) => {
       const list = resolveVar(key, data);
       if (!Array.isArray(list) || list.length === 0) return '';
       return list.map((item, i) => {
-        let out = body;
-        out = out.replace(/%INDEX%/g, i);
-        out = out.replace(/%INDEX_1%/g, i + 1);
-        out = out.replace(/%TOTAL%/g, list.length);
-        out = out.replace(/%FIRST%/g, i === 0 ? 'true' : '');
-        out = out.replace(/%LAST%/g, i === list.length - 1 ? 'true' : '');
-        out = out.replace(/%([a-zA-Z0-9_.]+)%/g, (m, p) => escapeHtml(resolveVar(p, item) ?? resolveVar(p, data) ?? ''));
-        return out;
+        let out = body
+          .replace(/%INDEX%/g, i)
+          .replace(/%INDEX_1%/g, i + 1)
+          .replace(/%TOTAL%/g, list.length)
+          .replace(/%FIRST%/g, i === 0 ? 'true' : '')
+          .replace(/%LAST%/g, i === list.length - 1 ? 'true' : '');
+        return out.replace(/%([a-zA-Z0-9_.]+)%/g, (m, p) =>
+          escapeHtml(String(resolveVar(p, item) ?? resolveVar(p, data) ?? '')));
       }).join('');
     });
+  }
 
-    // IF / ELSE / ENDIF
+  function renderTemplate(tpl, data) {
+    tpl = renderForeach(tpl, data);
     tpl = tpl.replace(/%IF\s+([^%]+)%([\s\S]*?)(?:%ELSE%([\s\S]*?))?%ENDIF%/g, (_, cond, truthy, falsy) => {
       const val = resolveVar(cond.trim(), data);
       return (val && val !== 'false' && val !== '0') ? truthy : (falsy || '');
     });
-
-    // VAR simples
     tpl = tpl.replace(/%([a-zA-Z0-9_.]+)%/g, (_, p) => escapeHtml(String(resolveVar(p, data) ?? '')));
-
-    // Escape literal %%
     return tpl.replace(/%%/g, '%');
   }
 
   function escapeHtml(str) {
     return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   // ─── Decodificação Base64 ─────────────────────────────────────────────────
 
   function decodeBase64(encoded) {
-    try {
-      return decodeURIComponent(escape(atob(encoded)));
-    } catch (_) {
-      return '';
-    }
+    try { return decodeURIComponent(escape(atob(encoded))); }
+    catch (_) { return ''; }
   }
 
   // ─── Hidratação de uma zona ───────────────────────────────────────────────
 
   async function hydrateZone(zone) {
     const src = zone.dataset.renderitSrc;
-    const encoded = zone.dataset.template;
+    const encoded = zone.dataset.renderitTemplate; // data-renderit-template
 
     if (!src || !encoded) return;
 
@@ -78,51 +69,50 @@
       const res = await fetch(src);
       if (res.ok) data = await res.json();
     } catch (_) {
-      // Fallback: mantém loading placeholder invisível, não quebra
       const loader = zone.querySelector('.renderit-loading');
       if (loader) loader.remove();
       return;
     }
 
-    const rendered = renderTemplate(template, data);
-    zone.innerHTML = rendered; // dados já sanitizados pelo renderTemplate
+    zone.innerHTML = renderTemplate(template, data);
   }
 
   // ─── Registro do Service Worker ───────────────────────────────────────────
 
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      // SW não disponível — modo degraded, fetch direto
-    });
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 
-  // ─── Hidratação lazy com IntersectionObserver ─────────────────────────────
+  // ─── Hidratação lazy (apenas para data-renderit-lazy) ─────────────────────
 
-  function observeZones(zones) {
+  function observeLazyZones(zones) {
     if (!('IntersectionObserver' in window)) {
-      zones.forEach(hydrateZone);
-      return;
+      return Promise.all(zones.map(hydrateZone));
     }
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          hydrateZone(entry.target);
+    return new Promise(resolve => {
+      let pending = zones.length;
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
           observer.unobserve(entry.target);
-        }
-      });
-    }, { rootMargin: '200px' });
-
-    zones.forEach(z => observer.observe(z));
+          hydrateZone(entry.target).finally(() => { if (--pending === 0) resolve(); });
+        });
+      }, { rootMargin: '200px' });
+      zones.forEach(z => observer.observe(z));
+    });
   }
 
   // ─── Entry Point ──────────────────────────────────────────────────────────
 
   function init() {
     registerServiceWorker();
-    const zones = Array.from(document.querySelectorAll('[data-renderit-zone]'));
-    if (zones.length > 0) observeZones(zones);
+    const all = Array.from(document.querySelectorAll('[data-renderit-zone]'));
+    const lazy = all.filter(z => z.hasAttribute('data-renderit-lazy'));
+    const eager = all.filter(z => !z.hasAttribute('data-renderit-lazy'));
+
+    if (eager.length > 0) Promise.all(eager.map(hydrateZone)); // paralelo imediato
+    if (lazy.length > 0) observeLazyZones(lazy);               // só no viewport
   }
 
   if (document.readyState === 'loading') {

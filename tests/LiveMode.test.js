@@ -23,13 +23,13 @@ test('extractAndEncodeLiveZones: encoda template em Base64 e injeta loading', ()
 
   const result = extractAndEncodeLiveZones(html);
 
-  assert.ok(result.includes('data-template='), 'deve adicionar data-template');
+  assert.ok(result.includes('data-renderit-template='), 'deve adicionar data-renderit-template');
   assert.ok(result.includes('renderit-loading'), 'deve incluir o placeholder de loading');
   assert.ok(!result.includes('%item.name%'), 'template interno deve ter sido removido');
 
   // Extrai o valor do data-template e valida o decode
-  const match = result.match(/data-template="([^"]+)"/);
-  assert.ok(match, 'deve conter atributo data-template');
+  const match = result.match(/data-renderit-template="([^"]+)"/);
+  assert.ok(match, 'deve conter atributo data-renderit-template');
   const decoded = decodeB64(match[1]);
   assert.ok(decoded.includes('%item.name%'), 'conteúdo decodificado deve ter o template original');
 });
@@ -79,7 +79,7 @@ test('buildLive: pipeline completo gera index.html com zonas e scripts', async (
 
   // HTML com zona encodada
   assert.ok(files['index.html'], 'deve gerar index.html');
-  assert.ok(files['index.html'].includes('data-template='), 'zona deve estar encodada em Base64');
+  assert.ok(files['index.html'].includes('data-renderit-template='), 'zona deve estar com data-renderit-template em Base64');
   assert.ok(files['index.html'].includes('renderit-loading'), 'deve ter placeholder de loading');
   assert.ok(files['index.html'].includes('Live Site'), 'variáveis fora de zona devem ser resolvidas');
 
