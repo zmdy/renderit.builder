@@ -34,3 +34,4 @@ Example
 [01-05-26 20:00] FIX - UI Refinement: Exported updateNavButtons in wizard.js and centered wizard-container content in index.html for better UX.
 [01-05-26 20:25] CREATE - Sprint 2.2 Step 2 Template: Implemented wizard/steps/step-2-template.js with drag-and-drop ingestion for files and folders. Added real-time addon auditing using AddonScanner and automatic fetch-based status verification.
 [01-05-26 20:35] CREATE - Sprint 2.3 Step 3 Sample: Implemented wizard/steps/step-3-sample.js. Added dynamic JSON scaffold generation using SampleGenerator, CodeMirror preview in read-only mode, and download actions.
+[01-05-26 20:45] CREATE - Sprint 2.4 Step 4 Data: Implemented wizard/steps/step-4-data.js. Added dual-mode data entry (JSON Upload vs Visual Editor), dynamic form generator, deep-merge logic for multiple JSONs, and real-time field synchronization.

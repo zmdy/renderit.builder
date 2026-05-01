@@ -7,6 +7,7 @@ import { WIZARD_STEPS } from './config.js';
 import { renderStep1, initStep1 } from './steps/step-1-mode.js';
 import { renderStep2, initStep2 } from './steps/step-2-template.js';
 import { renderStep3, initStep3 } from './steps/step-3-sample.js';
+import { renderStep4, initStep4 } from './steps/step-4-data.js';
 
 // Estado global da sessão de build
 export const state = {
@@ -84,6 +85,11 @@ function renderCurrentStep() {
     case 2:
       container.innerHTML = renderStep3();
       initStep3();
+      break;
+
+    case 3:
+      container.innerHTML = renderStep4();
+      initStep4();
       break;
 
     default:
