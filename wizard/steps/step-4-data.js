@@ -4,8 +4,10 @@
  */
 
 import { state, updateNavButtons } from '../wizard.js';
+import { JsonEditor } from '../json-editor/JsonEditor.js';
 
 let currentMode = 'upload'; // 'upload' | 'editor'
+let jsonEditor = null;
 
 /**
  * Renderiza o conteúdo do passo 4
@@ -69,9 +71,7 @@ function renderUploadMode() {
             <span class="text-[10px] text-text-3 font-mono">OK</span>
           </div>
           
-          <div id="validation-warnings" class="hidden flex flex-col gap-2">
-            <!-- Warnings virão via JS -->
-          </div>
+          <div id="validation-warnings" class="hidden flex flex-col gap-2"></div>
         </div>
       </div>
     </div>
@@ -79,7 +79,7 @@ function renderUploadMode() {
 }
 
 /**
- * Renderiza o modo Editor Visual (Formulário Dinâmico)
+ * Renderiza a interface do Editor Visual
  */
 function renderEditorMode() {
   if (!state.finalJson && state.sampleJson) {
@@ -87,105 +87,10 @@ function renderEditorMode() {
   }
 
   if (!state.finalJson) {
-    return `<div class="p-8 text-center text-text-3 italic">Nenhum dado disponível para editar. Carregue um JSON ou gere um sample no passo anterior.</div>`;
+    return `<div class="p-8 text-center text-text-3 italic">Nenhum dado disponível para editar.</div>`;
   }
 
-  return `
-    <div class="flex flex-col gap-6 fade-in pb-10">
-      <!-- SITE SECTION -->
-      ${buildAccordion('🌐 Site', generateFields(state.finalJson.site || {}, 'site'), true)}
-
-      <!-- PAGES SECTION -->
-      ${(state.finalJson.pages || []).map((page, idx) => 
-        buildAccordion(`📄 Página: ${page.slug || idx}`, generateFields(page, `pages.${idx}`))
-      ).join('')}
-
-      <!-- ADDONS / EXTRA DATA -->
-      ${Object.keys(state.finalJson)
-        .filter(key => !['meta', 'site', 'pages', 'design'].includes(key))
-        .map(key => buildAccordion(`📦 ${key.toUpperCase()}`, generateFields(state.finalJson[key], key)))
-        .join('')}
-
-      <!-- DESIGN SECTION -->
-      <div class="bg-surface border border-border rounded-xl p-6 flex items-center justify-between group hover:border-accent transition-all">
-        <div class="flex items-center gap-4">
-          <div class="w-10 h-10 rounded-lg bg-panel flex items-center justify-center text-accent">
-            <i class="fa-solid fa-palette"></i>
-          </div>
-          <div>
-            <h4 class="text-sm font-bold text-text">Design System</h4>
-            <p class="text-[11px] text-text-3">Cores, fontes e estilos globais</p>
-          </div>
-        </div>
-        <button id="btn-open-design-editor" class="px-4 py-2 rounded-lg bg-panel border border-border text-xs font-bold text-text hover:text-accent hover:border-accent transition-all">
-          Abrir Editor
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Gera campos de formulário recursivamente
- */
-function generateFields(obj, path) {
-  return `
-    <div class="flex flex-col gap-4 p-4">
-      ${Object.entries(obj).map(([key, value]) => {
-        const fullPath = path ? `${path}.${key}` : key;
-        const label = key.charAt(0).toUpperCase() + key.slice(1);
-
-        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-          return `
-            <div class="border-l-2 border-border/30 pl-4 py-2 flex flex-col gap-3">
-              <h5 class="text-[10px] font-bold text-text-3 uppercase tracking-widest">${label}</h5>
-              ${generateFields(value, fullPath)}
-            </div>
-          `;
-        }
-
-        if (Array.isArray(value)) {
-          return `
-            <div class="flex flex-col gap-2">
-              <label class="text-[11px] font-bold text-text-2">${label} (Lista)</label>
-              <div class="p-3 bg-panel/50 rounded-lg border border-border italic text-[10px] text-text-3">
-                Edição de arrays disponível no modo JSON (Upload).
-              </div>
-            </div>
-          `;
-        }
-
-        const isLong = typeof value === 'string' && value.length > 50;
-        
-        return `
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[11px] font-bold text-text-2" for="field-${fullPath}">${label}</label>
-            ${isLong 
-              ? `<textarea id="field-${fullPath}" data-path="${fullPath}" class="data-field w-full bg-panel border border-border rounded-lg px-3 py-2 text-xs text-text focus:border-accent outline-none min-h-[80px] resize-none" placeholder="Digite ${label.toLowerCase()}...">${value}</textarea>`
-              : `<input id="field-${fullPath}" data-path="${fullPath}" type="text" value="${value}" class="data-field w-full bg-panel border border-border rounded-lg px-3 py-2 text-xs text-text focus:border-accent outline-none" placeholder="Digite ${label.toLowerCase()}...">`
-            }
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-}
-
-/**
- * Constrói um componente accordion
- */
-function buildAccordion(title, content, expanded = false) {
-  return `
-    <div class="accordion-item bg-surface border border-border rounded-xl overflow-hidden mb-4">
-      <button class="accordion-header w-full px-6 py-4 flex items-center justify-between bg-surface hover:bg-panel transition-colors text-left">
-        <span class="text-sm font-bold text-text-2 tracking-tight">${title}</span>
-        <i class="fa-solid fa-chevron-down text-[10px] text-text-3 transition-transform ${expanded ? 'rotate-180' : ''}"></i>
-      </button>
-      <div class="accordion-content ${expanded ? 'block' : 'hidden'} border-t border-border/50 bg-panel/20">
-        ${content}
-      </div>
-    </div>
-  `;
+  return `<div id="json-editor-container" class="fade-in"></div>`;
 }
 
 /**
@@ -233,30 +138,21 @@ function initUploadEvents() {
 }
 
 function initEditorEvents() {
-  // Accordion Toggles
-  document.querySelectorAll('.accordion-header').forEach(header => {
-    header.addEventListener('click', () => {
-      const content = header.nextElementSibling;
-      const icon = header.querySelector('.fa-chevron-down');
-      content.classList.toggle('hidden');
-      if (icon) icon.classList.toggle('rotate-180');
-    });
-  });
+  const container = document.getElementById('json-editor-container');
+  if (!container) return;
 
-  // Field Synchronization
-  document.querySelectorAll('.data-field').forEach(field => {
-    field.addEventListener('input', (e) => {
-      const path = e.target.dataset.path;
-      const value = e.target.value;
-      updateDataPath(state.finalJson, path, value);
-      validateData();
+  if (!jsonEditor) {
+    jsonEditor = new JsonEditor({
+      onChange: (newData) => {
+        state.finalJson = newData;
+        validateData();
+      }
     });
-  });
+  }
+
+  jsonEditor.render(state.finalJson, container);
 }
 
-/**
- * Processa arquivos JSON carregados
- */
 async function handleJsonFiles(files) {
   const jsonFiles = Array.from(files).filter(f => f.name.endsWith('.json'));
   if (jsonFiles.length === 0) return;
@@ -279,22 +175,6 @@ async function handleJsonFiles(files) {
   }
 }
 
-/**
- * Atualiza um valor no objeto via string path (ex: "site.url")
- */
-function updateDataPath(obj, path, value) {
-  const parts = path.split('.');
-  let current = obj;
-  for (let i = 0; i < parts.length - 1; i++) {
-    if (!current[parts[i]]) current[parts[i]] = {};
-    current = current[parts[i]];
-  }
-  current[parts[parts.length - 1]] = value;
-}
-
-/**
- * Validação simples de campos obrigatórios
- */
 function validateData() {
   const warnings = [];
   if (!state.finalJson?.site?.url) warnings.push('Campo site.url está vazio.');
@@ -316,9 +196,6 @@ function validateData() {
   updateNavButtons();
 }
 
-/**
- * Merge profundo para objetos JSON
- */
 function mergeDeep(target, source) {
   for (const key in source) {
     if (source[key] instanceof Object && !Array.isArray(source[key])) {
