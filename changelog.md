@@ -16,3 +16,4 @@ Example
 [01-05-26 12:17] CREATE - Sprint 0.2 Lexer: Implemented src/core/Lexer.js to tokenize template strings into flat arrays, and added comprehensive native node:test suite in tests/Lexer.test.js.
 [01-05-26 12:22] CREATE - Sprint 0.3 Parser: Implemented src/core/Parser.js to construct an AST from lexer tokens, complete with tree hierarchy for loops and conditions, throwing precise ParseErrors, and added corresponding node:test cases.
 [01-05-26 12:58] CREATE - Sprint 0.4 Renderer: Implemented src/core/Renderer.js using iterative approach for generating the final HTML string, including variable resolving and standard escaping. Completed E2E pipeline tests in tests/Renderer.test.js.
+[01-05-26 13:15] CREATE - Sprint 1.1 AddonManager: Implemented src/core/AddonManager.js with local-first resolution, GitHub fallback with sessionStorage cache, template injection, and Magic Keys extraction. Added comprehensive test suite in tests/AddonManager.test.js.
