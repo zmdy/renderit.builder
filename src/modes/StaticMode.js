@@ -28,7 +28,7 @@ export async function buildStatic(config) {
   packAssets(zip, config, emit);
 
   emit('zipping', {});
-  const blob = await zip.generateBlob();
+  const blob = await zip.build();
   emit('done', { size: blob.size });
   return blob;
 }
@@ -58,7 +58,7 @@ function generateSeo(zip, data, pages, emit) {
   zip.addFile('robots.txt', generateRobotsTxt());
   zip.addFile('sitemap.xml', generateSitemapXml(siteUrl, pages));
   zip.addFile('.htaccess', generateHtaccess());
-  zip.addFile('llms.txt', generateLlmsTxt(getPath(data, 'site.name'), getPath(data, 'site.description')));
+  zip.addFile('llms.txt', generateLlmsTxt(getPath(data, 'site.name'), getPath(data, 'site.description'), siteUrl, pages));
 }
 
 function packAssets(zip, config, emit) {

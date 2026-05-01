@@ -67,6 +67,9 @@ test('StaticMode: E2E build gera estrutura multi-page, SEO e Zip corretamente', 
   assert.ok(files['sitemap.xml'].includes('https://awesome.com/sobre/'));
   assert.ok(files['llms.txt'].includes('My Awesome Site'));
   assert.ok(files['llms.txt'].includes('Um site incrível'));
+  assert.ok(files['llms.txt'].includes('## Pages'), 'llms.txt deve conter seção ## Pages');
+  assert.ok(files['llms.txt'].includes('[index]'), 'llms.txt deve listar a página index');
+  assert.ok(files['llms.txt'].includes('[sobre]'), 'llms.txt deve listar a página sobre');
 
   // 4. Scan e Injeção de Assets
   assert.equal(files['assets/hero.jpg'], 'blob_mock_data');

@@ -12,7 +12,7 @@ export function scanAssets(data) {
     if (!obj) return;
     if (typeof obj === 'string') {
       // Identifica paths relativos típicos de imagens e mídias
-      if (obj.startsWith('assets/') || obj.match(/\.(png|jpg|jpeg|gif|svg|webp|mp4|webm)$/i)) {
+      if (obj.match(/\.(png|jpg|jpeg|gif|svg|webp|mp4|webm|pdf|woff2|woff)$/i)) {
         if (!obj.startsWith('http://') && !obj.startsWith('https://')) {
           assets.add(obj);
         }
