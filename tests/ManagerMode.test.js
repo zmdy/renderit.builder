@@ -49,8 +49,8 @@ test('ManagerMode: handles multiple variables in the same element', async () => 
   const blob = await buildManager(config);
   const html = blob.mockFiles['index.html'];
 
-  assert.ok(html.includes('renderit_manager_area="hero.img"'), 'first area');
-  assert.ok(html.includes('renderit_manager_area_2="hero.alt"'), 'second area');
+  assert.ok(html.includes('renderit_manager_area_src="hero.img"'), 'src area');
+  assert.ok(html.includes('renderit_manager_area_alt="hero.alt"'), 'alt area');
 });
 
 test('ManagerMode: annotates loops with indexed paths', async () => {

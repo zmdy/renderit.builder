@@ -54,7 +54,7 @@ export function processAnnotations(html) {
   );
 
   // 2. Variable annotations
-  const tagAnnotations = new Map(); // Pos -> Array of paths
+  const tagAnnotations = new Map(); // Pos -> Array of {path, attrName}
   const markerRegex = /\[\[rma-start:([\s\S]+?)\]\]/g;
   let match;
 
@@ -62,19 +62,32 @@ export function processAnnotations(html) {
     const path = match[1];
     const pos = findParentTagPos(result, match.index);
     if (pos !== -1) {
+      const attrName = findEnclosingAttribute(result, pos, match.index);
       if (!tagAnnotations.has(pos)) tagAnnotations.set(pos, []);
-      tagAnnotations.get(pos).push(path);
+      tagAnnotations.get(pos).push({ path, attrName });
     }
   }
 
   // 3. Inject attributes into tags
   const sortedPositions = Array.from(tagAnnotations.keys()).sort((a, b) => b - a);
   for (const pos of sortedPositions) {
-    const paths = tagAnnotations.get(pos);
+    const annotations = tagAnnotations.get(pos);
     let attrs = '';
-    paths.forEach((p, i) => {
-      const suffix = i === 0 ? '' : `_${i + 1}`;
-      attrs += ` renderit_manager_area${suffix}="${p}"`;
+    const usedSuffixes = new Set();
+    
+    annotations.forEach((ann, i) => {
+      let suffix = '';
+      if (ann.attrName) {
+        suffix = `_${ann.attrName}`;
+      } else {
+        // Find next available numerical suffix
+        let n = i === 0 ? 0 : i + 1;
+        while (n > 0 && usedSuffixes.has(`_${n}`)) n++;
+        suffix = n === 0 ? '' : `_${n}`;
+      }
+      
+      usedSuffixes.add(suffix);
+      attrs += ` renderit_manager_area${suffix}="${ann.path}"`;
     });
 
     const tagEnd = result.indexOf('>', pos);
@@ -95,33 +108,26 @@ export function processAnnotations(html) {
 function findParentTagPos(html, startPos) {
   let depth = 0;
   for (let i = startPos - 1; i >= 0; i--) {
-    // If we find an opening tag start without having seen a closing tag start
     if (html[i] === '<') {
       if (html[i + 1] === '/') {
-        depth++; // Closing tag (backwards)
+        depth++;
       } else {
-        if (depth === 0) return i; // This is the opening tag we are in
+        if (depth === 0) return i;
         depth--;
       }
-    } else if (html[i] === '>') {
-      // If we see a tag end (backwards), we might be skiping a whole element
-      // or we just found the end of the opening tag we are in.
-      // But we can't be sure without looking at the next char.
-      // However, if we skip closing tags via the depth counter, 
-      // the first < we hit at depth 0 MUST be our parent.
-      
-      // Wait, if we are at <img src="[marker]">, there is no > before us in THIS tag.
-      // If we are at <div>[marker]</div>, there IS a > before us (the one from <div>).
-      
-      // The logic: depth tracks how many elements we are "inside" as we go backwards.
-      // <p> <a> [marker] </a> </p>
-      // 1. see </a> -> depth becomes 1
-      // 2. see <a> -> depth becomes 0
-      // 3. see <p> -> depth is 0, return its pos.
     }
   }
   return -1;
 }
 
-// For compatibility with ManagerMode.js
+/**
+ * Checks if the marker is inside an attribute and returns the attribute name.
+ */
+function findEnclosingAttribute(html, tagPos, markerPos) {
+  const fragment = html.slice(tagPos, markerPos);
+  // Look for attribute pattern before the marker: name=" or name='
+  const match = fragment.match(/([a-zA-Z0-9_-]+)\s*=\s*["'][^"']*$/);
+  return match ? match[1] : null;
+}
+
 export function finalizeAttributes(html) { return html; }
