@@ -12,8 +12,6 @@ export class JsonEditor {
 
   /**
    * Renderiza o editor em um container
-   * @param {Object} data 
-   * @param {HTMLElement} container 
    */
   render(data, container) {
     this.data = data;
@@ -32,7 +30,6 @@ export class JsonEditor {
       const fullPath = path ? `${path}.${key}` : key;
       const label = key.charAt(0).toUpperCase() + key.slice(1);
 
-      // Casos especiais (ex: design) serão tratados na subtarefa 2.4.2.3
       if (key === 'design') {
         html += this.renderDesignButton();
         continue;
@@ -137,10 +134,7 @@ export class JsonEditor {
     for (const part of parts) current = current[part];
 
     if (Array.isArray(current)) {
-      // Clona o primeiro item ou cria um objeto vazio se a lista estiver vazia
       const template = current.length > 0 ? JSON.parse(JSON.stringify(current[0])) : {};
-      
-      // Limpa valores do clone
       const clearValues = (obj) => {
         for (const key in obj) {
           if (typeof obj[key] === 'object' && obj[key] !== null) clearValues(obj[key]);
@@ -148,7 +142,6 @@ export class JsonEditor {
         }
       };
       if (current.length > 0) clearValues(template);
-
       current.push(template);
       this.render(this.data, this.container);
       this.onChange(this.data);
@@ -160,7 +153,6 @@ export class JsonEditor {
    */
   removeItem(path, index) {
     if (!confirm('Excluir este item?')) return;
-    
     const parts = path.split('.');
     let current = this.data;
     for (const part of parts) current = current[part];
@@ -183,7 +175,6 @@ export class JsonEditor {
     if (Array.isArray(current)) {
       const targetIndex = direction === 'up' ? index - 1 : index + 1;
       if (targetIndex < 0 || targetIndex >= current.length) return;
-
       [current[index], current[targetIndex]] = [current[targetIndex], current[index]];
       this.render(this.data, this.container);
       this.onChange(this.data);
@@ -194,7 +185,6 @@ export class JsonEditor {
    * Vincula eventos de interface
    */
   bindEvents() {
-    // Inputs escalares
     this.container.querySelectorAll('.editor-field').forEach(field => {
       field.addEventListener('input', (e) => {
         this.updateData(e.target.dataset.path, e.target.value);
@@ -202,147 +192,147 @@ export class JsonEditor {
       });
     });
 
-    // Botões de array
-    this.container.querySelectorAll('.btn-add-item').forEach(btn => {
-      btn.addEventListener('click', () => this.addItem(btn.dataset.path));
-    });
-
-    this.container.querySelectorAll('.btn-remove-item').forEach(btn => {
-      btn.addEventListener('click', () => this.removeItem(btn.dataset.path, parseInt(btn.dataset.index)));
-    });
-
-    this.container.querySelectorAll('.btn-move-item').forEach(btn => {
-      btn.addEventListener('click', () => this.moveItem(btn.dataset.path, parseInt(btn.dataset.index), btn.dataset.dir));
-    });
-
-    // Botão Design System
+    this.container.querySelectorAll('.btn-add-item').forEach(btn => btn.onclick = () => this.addItem(btn.dataset.path));
+    this.container.querySelectorAll('.btn-remove-item').forEach(btn => btn.onclick = () => this.removeItem(btn.dataset.path, parseInt(btn.dataset.index)));
+    this.container.querySelectorAll('.btn-move-item').forEach(btn => btn.onclick = () => this.moveItem(btn.dataset.path, parseInt(btn.dataset.index), btn.dataset.dir));
+    
     const btnDesign = this.container.querySelector('#btn-open-design');
-    if (btnDesign) {
-      btnDesign.addEventListener('click', () => this.openDesignEditor());
-    }
+    if (btnDesign) btnDesign.onclick = () => this.openDesignEditor();
   }
 
   /**
    * Abre o modal de edição do Design System
    */
   openDesignEditor() {
+    const categories = [
+      { id: 'cores', label: 'Cores', icon: 'fa-palette' },
+      { id: 'tipografia', label: 'Tipografia', icon: 'fa-font' },
+      { id: 'espacamento', label: 'Espaçamento', icon: 'fa-arrows-left-right' },
+      { id: 'componentes', label: 'Componentes', icon: 'fa-cubes' },
+      { id: 'diretrizes', label: 'Diretrizes', icon: 'fa-book' }
+    ];
+
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 fade-in';
-    modal.innerHTML = `
-      <div class="bg-surface border border-border w-full max-w-4xl h-[80vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden scale-in">
+    modal.innerHTML = this.renderModalSkeleton(categories);
+    document.body.appendChild(modal);
+
+    this.bindModalEvents(modal, categories);
+  }
+
+  renderModalSkeleton(categories) {
+    return `
+      <div class="bg-surface border border-border w-full max-w-5xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden scale-in">
         <div class="px-6 py-4 border-b border-border flex items-center justify-between bg-panel">
           <div class="flex items-center gap-3">
-            <i class="fa-solid fa-palette text-accent"></i>
-            <h3 class="text-sm font-bold text-text uppercase tracking-widest">Design System Editor</h3>
+            <i class="fa-solid fa-wand-magic-sparkles text-accent"></i>
+            <h3 class="text-sm font-bold text-text uppercase tracking-widest">Configuração de Design</h3>
           </div>
-          <button id="btn-close-modal" class="p-2 text-text-3 hover:text-text transition-colors">
-            <i class="fa-solid fa-xmark text-lg"></i>
-          </button>
+          <button id="btn-close-modal" class="p-2 text-text-3 hover:text-text transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
         </div>
-        
         <div class="flex-1 flex overflow-hidden">
-          <!-- TABS SIDEBAR -->
-          <div class="w-48 border-r border-border bg-panel/30 p-4 flex flex-col gap-2">
-            ${Object.keys(this.data.design).map((section, idx) => `
-              <button class="design-tab px-4 py-2 rounded-lg text-left text-[11px] font-bold uppercase tracking-wider transition-all ${idx === 0 ? 'bg-accent text-white shadow-lg' : 'text-text-3 hover:bg-panel'}" data-section="${section}">
-                ${section}
+          <div class="w-56 border-r border-border bg-panel/30 p-4 flex flex-col gap-2">
+            ${categories.map((cat, idx) => `
+              <button class="design-tab px-4 py-3 rounded-xl text-left text-[11px] font-bold uppercase tracking-widest transition-all flex items-center gap-3 ${idx === 0 ? 'bg-accent text-white shadow-lg' : 'text-text-3 hover:bg-panel'}" data-cat="${cat.id}">
+                <i class="fa-solid ${cat.icon} w-4"></i>${cat.label}
               </button>
             `).join('')}
           </div>
-          
-          <!-- TAB CONTENT -->
-          <div id="design-tab-content" class="flex-1 p-8 overflow-y-auto no-scrollbar">
-            ${this.renderDesignSection(Object.keys(this.data.design)[0])}
+          <div id="design-tab-content" class="flex-1 p-10 overflow-y-auto no-scrollbar bg-surface/50">
+            ${this.renderDesignCategory(categories[0].id)}
           </div>
         </div>
-        
         <div class="px-6 py-4 border-t border-border flex justify-end gap-3 bg-panel">
-          <button id="btn-save-design" class="px-6 py-2 rounded-lg bg-accent text-white text-xs font-bold hover:bg-blue-600 transition-all shadow-lg shadow-accent/20">
-            Salvar e Fechar
-          </button>
+          <button id="btn-save-design" class="px-8 py-2.5 rounded-xl bg-accent text-white text-xs font-bold hover:bg-blue-600 transition-all shadow-lg shadow-accent/30">Aplicar Alterações</button>
         </div>
       </div>
     `;
+  }
 
-    document.body.appendChild(modal);
-
-    // Eventos do Modal
+  bindModalEvents(modal, categories) {
     modal.querySelector('#btn-close-modal').onclick = () => modal.remove();
-    modal.querySelector('#btn-save-design').onclick = () => {
-      this.onChange(this.data);
-      modal.remove();
-    };
+    modal.querySelector('#btn-save-design').onclick = () => { this.onChange(this.data); modal.remove(); };
 
     const tabs = modal.querySelectorAll('.design-tab');
     const content = modal.querySelector('#design-tab-content');
 
     tabs.forEach(tab => {
       tab.onclick = () => {
-        tabs.forEach(t => t.classList.remove('bg-accent', 'text-white', 'shadow-lg'));
-        tabs.forEach(t => t.classList.add('text-text-3', 'hover:bg-panel'));
+        tabs.forEach(t => { t.classList.remove('bg-accent', 'text-white', 'shadow-lg'); t.classList.add('text-text-3', 'hover:bg-panel'); });
         tab.classList.add('bg-accent', 'text-white', 'shadow-lg');
         tab.classList.remove('text-text-3', 'hover:bg-panel');
-        
-        content.innerHTML = this.renderDesignSection(tab.dataset.section);
-        this.bindDesignEvents(content, tab.dataset.section);
+        content.innerHTML = this.renderDesignCategory(tab.dataset.cat);
+        this.bindDesignEvents(content, tab.dataset.cat);
       };
     });
 
-    this.bindDesignEvents(content, Object.keys(this.data.design)[0]);
+    this.bindDesignEvents(content, categories[0].id);
   }
 
-  /**
-   * Renderiza os campos de uma seção do design system
-   */
-  renderDesignSection(section) {
-    const data = this.data.design[section];
-    return `
-      <div class="fade-in">
-        <h4 class="text-xs font-bold text-text-2 mb-6 border-b border-border/30 pb-2 uppercase tracking-widest">${section}</h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          ${Object.entries(data).map(([key, value]) => `
-            <div class="flex flex-col gap-1.5">
-              <label class="text-[11px] font-bold text-text-3" for="design-${section}-${key}">${key}</label>
-              ${key.toLowerCase().includes('color') 
-                ? `<div class="flex gap-2">
-                     <input type="color" value="${value}" class="design-field w-10 h-8 rounded border border-border bg-panel cursor-pointer" data-section="${section}" data-key="${key}">
-                     <input type="text" value="${value}" class="design-field-text flex-1 bg-panel border border-border rounded px-3 py-1.5 text-xs text-text outline-none focus:border-accent" data-section="${section}" data-key="${key}">
-                   </div>`
-                : `<input type="text" value="${value}" id="design-${section}-${key}" class="design-field-text w-full bg-panel border border-border rounded px-3 py-1.5 text-xs text-text outline-none focus:border-accent" data-section="${section}" data-key="${key}">`
-              }
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * Vincula eventos internos do design editor
-   */
-  bindDesignEvents(container, section) {
-    const update = (key, val) => {
-      this.data.design[section][key] = val;
-      // Atualiza inputs vinculados (texto <-> color)
-      container.querySelectorAll(`[data-key="${key}"]`).forEach(input => {
-        if (input.value !== val) input.value = val;
-      });
+  renderDesignCategory(catId) {
+    const mapping = {
+      cores: ['colors', 'palette', 'branding.colors'],
+      tipografia: ['typography', 'fonts', 'sizes'],
+      espacamento: ['spacing', 'grid', 'layout', 'spacings'],
+      componentes: ['components', 'ui', 'elements'],
+      diretrizes: ['guidelines', 'overview', 'dos', 'donts', 'brand']
     };
-
-    container.querySelectorAll('.design-field, .design-field-text').forEach(input => {
-      input.oninput = (e) => update(e.target.dataset.key, e.target.value);
+    const keys = mapping[catId];
+    let html = `<div class="fade-in"><h4 class="text-xs font-bold text-text-2 mb-8 border-b border-border/30 pb-3 uppercase tracking-widest">${catId}</h4><div class="grid grid-cols-1 md:grid-cols-2 gap-8">`;
+    let foundAny = false;
+    keys.forEach(key => {
+      const data = this.getNestedValue(this.data.design, key);
+      if (data) { foundAny = true; html += this.renderDesignFields(data, key); }
     });
+    if (!foundAny) {
+      html += `<div class="col-span-2 p-12 text-center border-2 border-dashed border-border rounded-2xl"><i class="fa-solid fa-magnifying-glass text-2xl text-text-3/20 mb-4"></i><p class="text-text-3 text-xs italic">Nenhum token de "${catId}" encontrado.</p></div>`;
+    }
+    return html + `</div></div>`;
   }
 
-  /**
-   * Atualiza valor no objeto via path
-   */
+  renderDesignFields(data, prefix) {
+    const GOOGLE_FONTS = ['Inter', 'Roboto', 'Montserrat', 'Open Sans', 'Playfair Display', 'Lora', 'Oswald', 'Raleway', 'Poppins', 'Ubuntu'];
+    return Object.entries(data).map(([key, value]) => {
+      const fullKey = `${prefix}.${key}`, label = key.charAt(0).toUpperCase() + key.slice(1);
+      const isColor = key.toLowerCase().includes('color') || (typeof value === 'string' && value.startsWith('#'));
+      const isFont = key.toLowerCase().includes('font') || key.toLowerCase().includes('family');
+      const isLong = ['overview', 'dos', 'donts', 'layout', 'guidelines', 'description'].includes(key.toLowerCase()) || (typeof value === 'string' && value.length > 50);
+      let inputHtml = '';
+      if (isColor) {
+        inputHtml = `<div class="flex gap-2 p-1 bg-panel border border-border rounded-xl"><div class="w-10 h-10 rounded-lg border border-border shadow-inner" style="background-color: ${value}"></div><input type="color" value="${value}" class="design-field opacity-0 absolute w-0 h-0" data-path="${fullKey}"><input type="text" value="${value}" class="design-field-text flex-1 bg-transparent px-3 text-xs text-text outline-none" data-path="${fullKey}"></div>`;
+      } else if (isFont) {
+        inputHtml = `<select class="design-field-text w-full bg-panel border border-border rounded-xl px-4 py-2.5 text-xs text-text outline-none focus:border-accent appearance-none" data-path="${fullKey}"><option value="">Selecione...</option>${GOOGLE_FONTS.map(font => `<option value="${font}" ${value === font ? 'selected' : ''}>${font}</option>`).join('')}${value && !GOOGLE_FONTS.includes(value) ? `<option value="${value}" selected>${value}</option>` : ''}</select>`;
+      } else if (isLong) {
+        inputHtml = `<textarea class="design-field-text w-full bg-panel border border-border rounded-xl px-4 py-3 text-xs text-text outline-none focus:border-accent min-h-[100px] resize-none" data-path="${fullKey}">${value}</textarea>`;
+      } else {
+        inputHtml = `<input type="text" value="${value}" class="design-field-text w-full bg-panel border border-border rounded-xl px-4 py-2.5 text-xs text-text outline-none focus:border-accent" data-path="${fullKey}">`;
+      }
+      return `<div class="flex flex-col gap-2 ${isLong ? 'col-span-2' : ''}"><label class="text-[11px] font-bold text-text-3">${label}</label>${inputHtml}</div>`;
+    }).join('');
+  }
+
+  getNestedValue(obj, path) { return path.split('.').reduce((acc, part) => acc && acc[part], obj); }
+
+  bindDesignEvents(container, catId) {
+    const update = (path, val) => {
+      this.setNestedValue(this.data.design, path, val);
+      const swatch = container.querySelector(`[data-path="${path}"].design-field`)?.previousElementSibling;
+      if (swatch) swatch.style.backgroundColor = val;
+      container.querySelectorAll(`[data-path="${path}"]`).forEach(input => { if (input.value !== val) input.value = val; });
+    };
+    container.querySelectorAll('.design-field, .design-field-text').forEach(input => input.oninput = (e) => update(e.target.dataset.path, e.target.value));
+    container.querySelectorAll('.design-field').forEach(input => { const swatch = input.previousElementSibling; if (swatch) swatch.onclick = () => input.click(); });
+  }
+
+  setNestedValue(obj, path, value) {
+    const parts = path.split('.'); let current = obj;
+    for (let i = 0; i < parts.length - 1; i++) { if (!current[parts[i]]) current[parts[i]] = {}; current = current[parts[i]]; }
+    current[parts[parts.length - 1]] = value;
+  }
+
   updateData(path, value) {
-    const parts = path.split('.');
-    let current = this.data;
-    for (let i = 0; i < parts.length - 1; i++) {
-      current = current[parts[i]];
-    }
+    const parts = path.split('.'); let current = this.data;
+    for (let i = 0; i < parts.length - 1; i++) current = current[parts[i]];
     current[parts[parts.length - 1]] = value;
   }
 }
