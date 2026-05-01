@@ -1,0 +1,298 @@
+/**
+ * renderit.builder — Design System Foundation
+ * Complementa o Tailwind CSS com tokens de design do ecossistema Renderit.
+ */
+
+:root {
+  /* COLORS — Electric Blue (Default) */
+  --re-bg: #09090b;
+  --re-surface: #0f1115;
+  --re-panel: #161a21;
+  --re-panel-alt: #1c222b;
+  --re-border: #262c36;
+  --re-border-bright: #3a4352;
+  
+  --re-text: #ffffff;
+  --re-text-2: #a1a1aa;
+  --re-text-3: #71717a;
+  
+  --re-accent: #2563eb;
+  --re-accent-dim: rgba(37, 99, 235, 0.15);
+  --re-accent-glow: rgba(37, 99, 235, 0.4);
+  
+  --re-success: #22c55e;
+  --re-danger: #ef4444;
+  --re-warn: #f59e0b;
+
+  /* SPACING & RADIUS */
+  --re-radius: 8px;
+  --re-radius-sm: 4px;
+  --re-radius-lg: 12px;
+}
+
+/* BASE STYLES */
+body {
+  background-color: var(--re-bg);
+  color: var(--re-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* CUSTOM SCROLLBAR */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--re-border);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--re-border-bright);
+}
+
+/* UTILS */
+.glass {
+  background: rgba(22, 26, 33, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* WIZARD: DROPZONE */
+.dropzone-overlay {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: radial-gradient(circle at center, var(--re-panel) 0%, var(--re-bg) 100%);
+}
+
+.dropzone-box {
+  border: 2px dashed var(--re-border);
+  border-radius: var(--re-radius-lg);
+  padding: 3rem;
+  transition: all 0.2s ease;
+  background: var(--re-surface);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.dropzone-overlay.dragover {
+  background: var(--re-accent-dim);
+}
+
+.dropzone-overlay.dragover .dropzone-box {
+  border-color: var(--re-accent);
+  transform: scale(1.02);
+  box-shadow: 0 0 40px var(--re-accent-dim);
+}
+
+.dropzone-overlay.error .dropzone-box {
+  border-color: var(--re-danger);
+  animation: shake 0.4s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+/* WIZARD: MODE CARDS */
+.mode-card {
+  cursor: pointer;
+  border: 1px solid var(--re-border);
+  background: var(--re-panel);
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-card:hover {
+  border-color: var(--re-border-bright);
+  transform: translateY(-4px);
+  background: var(--re-panel-alt);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.3);
+}
+
+.mode-card.selected {
+  border-color: var(--re-accent);
+  background: var(--re-accent-dim);
+  box-shadow: 0 0 0 1px var(--re-accent), 0 8px 20px var(--re-accent-dim);
+}
+
+.mode-card.selected::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  background: var(--re-accent);
+  clip-path: polygon(100% 0, 0 0, 100% 100%);
+}
+
+.mode-card.selected::after {
+  content: "\f00c";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  color: white;
+  font-size: 10px;
+}
+
+/* BUILD: PROGRESS BAR */
+.progress-container {
+  width: 100%;
+  height: 8px;
+  background: var(--re-border);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--re-accent) 0%, #60a5fa 100%);
+  width: 0%;
+  transition: width 0.4s ease;
+  box-shadow: 0 0 10px var(--re-accent-glow);
+}
+
+/* BUILD: LOG PANEL */
+.log-panel {
+  background: #000;
+  border-radius: var(--re-radius);
+  border: 1px solid var(--re-border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 1rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.log-entry {
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.log-entry.info { color: var(--re-text-2); }
+.log-entry.success { color: var(--re-success); }
+.log-entry.warn { color: var(--re-warn); }
+.log-entry.error { color: var(--re-danger); }
+
+.log-entry::before {
+  content: ">";
+  margin-right: 8px;
+  opacity: 0.5;
+}
+
+/* PREVIEW: IFRAME WRAPPER */
+.preview-wrapper {
+  background: white;
+  border-radius: var(--re-radius-lg);
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  border: 1px solid var(--re-border-bright);
+}
+
+.preview-toolbar {
+  height: 32px;
+  background: #f1f3f4;
+  border-bottom: 1px solid #dee1e6;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+}
+
+.preview-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.preview-dot.red { background: #ff5f56; }
+.preview-dot.yellow { background: #ffbd2e; }
+.preview-dot.green { background: #27c93f; }
+
+.preview-address {
+  flex: 1;
+  background: white;
+  height: 18px;
+  border-radius: 4px;
+  font-size: 9px;
+  color: #9aa0a6;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  margin: 0 20px;
+}
+
+/* ANIMATIONS */
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--re-accent-dim);
+  border-top-color: var(--re-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.pulse {
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
+/* RESPONSIVENESS */
+@media (max-width: 1024px) {
+  #sidebar-left, #sidebar-right {
+    width: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  #app-header .flex-1 {
+    display: none; /* Esconde seletor de tema em mobile/tablet pequeno se necessário */
+  }
+  
+  #sidebar-left, #sidebar-right {
+    position: absolute;
+    height: calc(100% - 48px);
+    background: var(--re-panel);
+    z-index: 100;
+  }
+  
+  #sidebar-left { left: -240px; }
+  #sidebar-right { right: -240px; }
+  
+  #sidebar-left.open { left: 0; }
+  #sidebar-right.open { right: 0; }
+}
