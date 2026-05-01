@@ -28,3 +28,4 @@ Example
 [01-05-26 18:50] CREATE - Sprint 2.0 UI Base: Established the index.html structure as the foundation for Phase 2. Updated CDNs (CodeMirror 5.65.16, DOMPurify), linked builder.css, and refactored layout with app-header, wizard-container, and app-footer. Integrated step indicators and navigation controls.
 [01-05-26 18:55] CREATE - Sprint 2.0.5 Wizard Shell: Created wizard/config.js and wizard/wizard.js to handle initial application state and navigation. Finalized index.html cleanup and script integration.
 [01-05-26 19:10] CREATE - Sprint 2.0.2 UI Styles: Implemented assets/css/builder.css with design tokens, component-specific styles (dropzone, cards, preview), premium animations, and responsive media queries.
+[01-05-26 19:15] CREATE - Sprint 2.0.3 Wizard Config: Implemented wizard/config.js with global constants, repository URLs, and wizard step definitions.
