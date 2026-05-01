@@ -1,0 +1,23 @@
+{
+  "categories": [
+    {
+      "name": "Cat 1",
+      "items": [
+        {
+          "title": "Item 1"
+        }
+      ]
+    },
+    {
+      "name": "Cat 2",
+      "items": [
+        {
+          "title": "Item 2"
+        },
+        {
+          "title": "Item 3"
+        }
+      ]
+    }
+  ]
+}
