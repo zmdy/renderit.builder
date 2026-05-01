@@ -41,7 +41,7 @@ async function processManagerPage(slug, config, addonManager, zip, emit) {
   
   emit('resolving_addons', { slug });
   let template = config.templates[slug];
-  template = await addonManager.resolveAndInject(template);
+  template = await addonManager.resolveAndInject(template, config.data);
   
   // Inject markers for annotation
   const markedTemplate = injectMarkers(template);

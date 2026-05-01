@@ -112,3 +112,20 @@ test('AddonManager: extrai magic keys de um addon', () => {
   assert.ok(keys.includes('show'));
   assert.equal(keys.length, 4);
 });
+test('AddonManager: carrega JSON externo e injeta no contexto', async () => {
+  setupMocks();
+  globalThis.fetch = async (url) => {
+    if (url.includes('slider.html')) return { ok: true, text: async () => '<div>%slider.title%</div>' };
+    if (url.includes('data.json')) return { ok: true, json: async () => ({ title: 'External Title' }) };
+    return { ok: false };
+  };
+
+  const manager = new AddonManager();
+  const context = {};
+  const result = await manager.resolveAndInject('%ADDON slider src="data.json"%', context);
+
+  assert.equal(context.slider.title, 'External Title');
+  assert.ok(result.includes('<div>%slider.title%</div>'));
+  
+  restoreMocks();
+});

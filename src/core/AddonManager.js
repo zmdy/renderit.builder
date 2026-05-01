@@ -1,5 +1,6 @@
 import { AddonError } from './types.js';
 import { tokenize } from './Lexer.js';
+import { scanTemplate } from '../utils/AddonScanner.js';
 
 /**
  * Gerencia a resolução, carregamento e injeção de Addons.
@@ -14,18 +15,14 @@ export class AddonManager {
   /**
    * Resolve e injeta todos os addons encontrados em um template.
    * @param {string} template 
+   * @param {Object} [dataContext] - Objeto de dados para injeção de JSON externo
    * @returns {Promise<string>}
    */
-  async resolveAndInject(template) {
+  async resolveAndInject(template, dataContext = {}) {
     let result = template;
-    const matches = result.match(/%ADDON\s+([^%]+)%/g) || [];
+    const detectedAddons = scanTemplate(template);
     
-    for (const match of matches) {
-      const tagContent = match.slice(1, -1).trim();
-      const parts = tagContent.split(' src=');
-      const name = parts[0].replace(/^ADDON\s+/, '').trim();
-      const src = parts[1] ? parts[1].replace(/["']/g, '').trim() : null;
-
+    for (const { name, src } of detectedAddons) {
       const addonHtml = await this.resolveAddon(name);
       
       if (!this.resolvedAddons.has(name)) {
@@ -37,7 +34,24 @@ export class AddonManager {
         });
       }
 
-      result = result.replace(match, addonHtml);
+      // Se houver um src definido, carrega o JSON e injeta no contexto sob o namespace do addon
+      if (src && dataContext) {
+        const externalData = await this._tryFetchJson(src);
+        if (externalData) {
+          dataContext[name] = Object.assign(dataContext[name] || {}, externalData);
+        }
+      }
+
+      // Substituição exata da tag (re-gerando a tag para garantir o match)
+      const tag = src ? `%ADDON ${name} src="${src}"%` : `%ADDON ${name}%`;
+      // Usamos replaceAll para garantir que todas as instâncias do mesmo addon sejam trocadas
+      result = result.split(tag).join(addonHtml);
+      
+      // Fallback para variações de aspas se não deu match direto
+      if (src) {
+        const tagSingle = `%ADDON ${name} src='${src}'%`;
+        result = result.split(tagSingle).join(addonHtml);
+      }
     }
     
     return result;
@@ -97,7 +111,18 @@ export class AddonManager {
     return null;
   }
 
+  async _tryFetchJson(url) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return await res.json();
+    } catch (e) {
+      // Ignorar erro silenciosamente
+    }
+    return null;
+  }
+
   getResolvedAddons() {
     return Array.from(this.resolvedAddons.values());
   }
 }
+

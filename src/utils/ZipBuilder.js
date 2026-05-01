@@ -19,16 +19,18 @@ export class ZipBuilder {
   }
 
   /**
-   * @returns {Promise<Blob>}
+   * Adiciona um arquivo binário ao ZIP.
+   * @param {string} path Caminho virtual do arquivo
+   * @param {ArrayBuffer} arrayBuffer Conteúdo binário
    */
-  async generateBlob() {
-    return await this.zip.generateAsync({ type: 'blob' });
+  addBinaryFile(path, arrayBuffer) {
+    this.zip.file(path, arrayBuffer, { binary: true });
   }
 
   /**
-   * @returns {Promise<string>}
+   * @returns {Promise<Blob>}
    */
-  async generateBase64() {
-    return await this.zip.generateAsync({ type: 'base64' });
+  async build() {
+    return await this.zip.generateAsync({ type: 'blob' });
   }
 }

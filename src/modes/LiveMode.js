@@ -38,7 +38,7 @@ async function processLivePage(slug, config, addonManager, zip, emit) {
   emit('resolving_addons', { slug });
 
   let template = config.templates[slug];
-  template = await addonManager.resolveAndInject(template);
+  template = await addonManager.resolveAndInject(template, config.data);
 
   emit('parsing', { slug });
   const tokens = tokenize(template);
