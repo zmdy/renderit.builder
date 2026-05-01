@@ -1,27 +1,31 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Renderit Editor</title>
-  
+
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
+
   <!-- Custom Base Styles -->
 
   <!-- JSZip -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <!-- CodeMirror 5 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/material-ocean.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/neo.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-ocean.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/neo.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+
+  <!-- DOMPurify -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -54,61 +58,97 @@
       }
     }
   </script>
+  
+  <!-- Builder Styles -->
+  <link rel="stylesheet" href="assets/css/builder.css">
+
   <script type="module" crossorigin src="https://zmdy.github.io/renderit.editor/renderit-core.min.js"></script>
   <link rel="stylesheet" crossorigin href="https://zmdy.github.io/renderit.editor/renderit-core-style.min.css">
 </head>
+
 <body class="bg-bg text-text h-screen w-screen overflow-hidden flex flex-col font-sans text-[13px] antialiased">
 
   <!-- TOOLBAR -->
-  <header class="h-12 shrink-0 bg-surface border-b border-border flex items-center shadow-sm relative z-40">
-    
+  <header id="app-header" class="h-12 shrink-0 bg-surface border-b border-border flex items-center shadow-sm relative z-40">
+
     <!-- Logo -->
     <div class="w-[264px] shrink-0 border-r border-border h-full flex items-center px-4 gap-2.5">
-      <h1 class="font-semibold text-[13px] tracking-wide text-text">
-        <img src="./assets/images/renderit-builder.png" alt="">
+      <h1 class="font-semibold text-[13px] tracking-wide text-text flex items-center gap-2">
+        <img src="./assets/images/renderit-builder.png" alt="Renderit Builder" class="h-6">
+        <span class="opacity-50 font-normal text-[10px] mt-1">v0.1.0</span>
       </h1>
     </div>
-    
-    <!-- Center / Viewport -->
-    <div class="flex-1 px-4 flex items-center gap-4">
-      <!-- Theme Selector -->
-      <div class="ml-4 flex items-center gap-2">
-        <i class="fa-solid fa-palette text-text-3 text-sm"></i>
-        <select id="theme-selector" class="top-select min-w-[130px]">
-          <option value="electric-blue">Electric Blue</option>
-          <option value="dracula">Dracula Theme</option>
-          <option value="sunset-glow">Sunset Glow</option>
-          <option value="evergreen">Evergreen</option>
-        </select>
+
+    <!-- Center / Step Indicator -->
+    <div class="flex-1 px-6 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <!-- Theme Selector -->
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-palette text-text-3 text-sm"></i>
+          <select id="theme-selector" class="top-select min-w-[130px]">
+            <option value="electric-blue">Electric Blue</option>
+            <option value="dracula">Dracula Theme</option>
+            <option value="sunset-glow">Sunset Glow</option>
+            <option value="evergreen">Evergreen</option>
+          </select>
+        </div>
       </div>
+
+      <!-- STEP INDICATOR -->
+      <div class="flex items-center gap-3 bg-panel-alt px-4 py-1.5 rounded-full border border-border shadow-inner">
+        <span class="text-[10px] font-bold text-text-3 uppercase tracking-widest">Wizard Progress</span>
+        <div class="flex gap-1" id="step-indicator-dots">
+          <div class="w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_var(--re-accent)]"></div>
+          <div class="w-2 h-2 rounded-full bg-border"></div>
+          <div class="w-2 h-2 rounded-full bg-border"></div>
+          <div class="w-2 h-2 rounded-full bg-border"></div>
+          <div class="w-2 h-2 rounded-full bg-border"></div>
+        </div>
+        <span class="text-[11px] font-mono text-accent font-bold ml-2" id="step-label">1 / 5</span>
+      </div>
+      
+      <div></div> <!-- Spacer -->
     </div>
-    
+
     <!-- Actions & Light/Dark Toggle -->
-    <div class="w-[284px] shrink-0 border-l border-border h-full flex items-center justify-end px-4 gap-4">   
+    <div class="w-[320px] shrink-0 border-l border-border h-full flex items-center justify-end px-4 gap-4">
+      
+      <!-- Reset Button -->
+      <button id="btn-reset" class="text-text-3 hover:text-danger flex items-center gap-1.5 transition-colors text-[11px] font-medium mr-2" title="Recomeçar do zero">
+        <i class="fa-solid fa-rotate-left text-[10px]"></i> Reset
+      </button>
+
       <!-- Toggle Switch for Dark/Light Mode -->
       <div class="flex items-center justify-center gap-2">
         <i class="fa-solid fa-sun text-warn text-sm"></i>
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" id="btn-mode-toggle" class="sr-only peer">
-          <div class="w-11 h-6 bg-border-bright rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-warn"></div>
+          <div
+            class="w-11 h-6 bg-border-bright rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-warn">
+          </div>
         </label>
         <i class="fa-solid fa-moon text-text-3 text-sm" id="icon-moon"></i>
       </div>
 
       <!-- Export Menu -->
       <div class="relative group">
-        <button id="btn-export-main" class="h-7 px-4 rounded-md bg-accent text-white font-medium text-xs shadow-[0_0_12px_var(--re-accent-dim)] hover:bg-blue-600 transition-colors flex items-center gap-2">
+        <button id="btn-export-main"
+          class="h-7 px-4 rounded-md bg-accent text-white font-medium text-xs shadow-[0_0_12px_var(--re-accent-dim)] hover:bg-blue-600 transition-colors flex items-center gap-2">
           <i class="fa-solid fa-download"></i> Export <i class="fa-solid fa-chevron-down text-[8px] opacity-70"></i>
         </button>
         <!-- Dropdown -->
-        <div class="absolute right-0 top-full mt-1 w-48 bg-panel border border-border rounded-lg shadow-xl py-1 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-          <button id="export-current" class="w-full text-left px-4 py-2 text-xs text-text hover:bg-accent/10 hover:text-accent flex items-center gap-2">
+        <div
+          class="absolute right-0 top-full mt-1 w-48 bg-panel border border-border rounded-lg shadow-xl py-1 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+          <button id="export-current"
+            class="w-full text-left px-4 py-2 text-xs text-text hover:bg-accent/10 hover:text-accent flex items-center gap-2">
             <i class="fa-solid fa-file-code"></i> Baixar Arquivo Atual
           </button>
-          <button id="export-all" class="w-full text-left px-4 py-2 text-xs text-text hover:bg-accent/10 hover:text-accent flex items-center gap-2">
+          <button id="export-all"
+            class="w-full text-left px-4 py-2 text-xs text-text hover:bg-accent/10 hover:text-accent flex items-center gap-2">
             <i class="fa-solid fa-files"></i> Baixar Tudo (Individual)
           </button>
-          <button id="export-zip" class="w-full text-left px-4 py-2 text-xs text-text hover:bg-accent/10 hover:text-accent flex items-center gap-2">
+          <button id="export-zip"
+            class="w-full text-left px-4 py-2 text-xs text-text hover:bg-accent/10 hover:text-accent flex items-center gap-2">
             <i class="fa-solid fa-file-zipper"></i> Baixar como .ZIP
           </button>
         </div>
@@ -116,430 +156,68 @@
     </div>
   </header>
 
-  <!-- EMPTY STATE / DRAG AND DROP -->
-  <div id="dropzone" class="flex-1 flex flex-col items-center justify-center dropzone-overlay active">
-    <div class="dropzone-box flex flex-col items-center justify-center">
-      <div class="w-16 h-16 rounded-full bg-accent-dim text-accent flex items-center justify-center text-3xl mb-4">
-        <i class="fa-regular fa-folder-open"></i>
-      </div>
-      <h2 class="text-xl font-semibold text-text mb-2">Abra um Arquivo ou Pasta</h2>
-      <p class="text-text-2 mb-6">Arraste seus aquivos .html aqui ou clique no botão abaixo.</p>
-      
-      <div class="flex gap-4">
-        <button id="btn-open-file" class="px-5 py-2.5 rounded-lg bg-panel border-2 border-border text-text font-medium hover:border-accent hover:text-accent transition-colors">
-          <i class="fa-solid fa-file-code mr-2"></i> Selecionar Arquivo
-        </button>
-        <button id="btn-open-folder" class="px-5 py-2.5 rounded-lg bg-accent text-white font-medium hover:bg-blue-600 shadow-lg shadow-accent/20 transition-all">
-          <i class="fa-solid fa-folder-tree mr-2"></i> Abrir Pasta
-        </button>
-      </div>
-      
-      <!-- Hidden intputs for file picking fallback -->
-      <input type="file" id="file-input" accept=".html, text/html" class="hidden">
-      <!-- Webkitdirectory for folder picking -->
-      <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden">
-    </div>
-  </div>
-
   <!-- MAIN LAYOUT -->
-  <main class="hidden flex-1 flex overflow-hidden">
-    
-    <!-- LEFT SIDEBAR -->
-    <aside id="sidebar-left" class="w-[264px] shrink-0 bg-panel border-r border-border flex flex-col h-full shadow-sm z-20 transition-all duration-300">
-      
-      <!-- Project Files -->
-      <div class="border-b border-border flex flex-col h-1/3 min-h-[150px]">
-        <div class="px-4 py-2 flex items-center justify-between">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-text-3">Project Files</span>
-          <div class="flex items-center gap-2">
-            <button id="btn-add-file-sidebar" class="text-text-3 hover:text-accent" title="Adicionar Arquivos">
-              <i class="fa-solid fa-plus text-[10px]"></i>
-            </button>
-            <i class="fa-solid fa-folder text-text-3 text-[10px]"></i>
-          </div>
+  <main id="wizard-container" class="flex-1 flex overflow-hidden">
+    <!-- EMPTY STATE / DRAG AND DROP -->
+    <div id="dropzone" class="flex-1 flex flex-col items-center justify-center dropzone-overlay active">
+      <div class="dropzone-box flex flex-col items-center justify-center">
+        <div class="w-16 h-16 rounded-full bg-accent-dim text-accent flex items-center justify-center text-3xl mb-4">
+          <i class="fa-regular fa-folder-open"></i>
         </div>
-        <div class="flex-1 overflow-y-auto" id="file-tree-container">
-          <!-- Populated by file-tree.js -->
+        <h2 class="text-xl font-semibold text-text mb-2">Abra um Arquivo ou Pasta</h2>
+        <p class="text-text-2 mb-6">Arraste seus aquivos .html aqui ou clique no botão abaixo.</p>
+
+        <div class="flex gap-4">
+          <button id="btn-open-file"
+            class="px-5 py-2.5 rounded-lg bg-panel border-2 border-border text-text font-medium hover:border-accent hover:text-accent transition-colors">
+            <i class="fa-solid fa-file-code mr-2"></i> Selecionar Arquivo
+          </button>
+          <button id="btn-open-folder"
+            class="px-5 py-2.5 rounded-lg bg-accent text-white font-medium hover:bg-blue-600 shadow-lg shadow-accent/20 transition-all">
+            <i class="fa-solid fa-folder-tree mr-2"></i> Abrir Pasta
+          </button>
         </div>
+
+        <!-- Hidden intputs for file picking fallback -->
+        <input type="file" id="file-input" accept=".html, text/html" class="hidden">
+        <!-- Webkitdirectory for folder picking -->
+        <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden">
       </div>
-
-      <!-- DOM Navigator -->
-      <div class="flex-col h-2/3 flex relative">
-        <div class="px-4 py-2 border-b border-border flex items-center justify-between bg-panel sticky top-0">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-text-3">Navigator</span>
-          <button class="text-text-3 hover:text-text"><i class="fa-solid fa-compress text-[10px]"></i></button>
-        </div>
-        
-        <!-- Breadcrumb & Root reset -->
-        <div id="nav-breadcrumb-bar" class="hidden px-2 py-1.5 border-b border-border/50 bg-panel-alt flex items-center justify-between shadow-inner">
-           <div class="flex items-center gap-1.5 text-[10px] font-mono whitespace-nowrap overflow-x-auto no-scrollbar flex-1 mr-2" id="nav-breadcrumb-items">
-             <button id="btn-nav-root" class="text-text-3 hover:text-accent flex items-center gap-1 transition-colors px-1 rounded-sm"><i class="fa-solid fa-house"></i> ROOT</button>
-             <span class="text-text-3">/</span>
-             <span id="nav-current-root-label" class="text-accent font-medium">...</span>
-           </div>
-           <!-- Toggle Expand -->
-           <button id="btn-nav-expand-path" class="text-text-3 hover:text-text p-1 transition-colors" title="Expandir/Contrair Path">
-             <i class="fa-solid fa-arrows-left-right text-[9px]"></i>
-           </button>
-        </div>
-
-        <!-- Search & Filters -->
-        <div class="px-3 pt-2 pb-1.5 flex flex-col gap-1.5 border-b border-border/50 bg-panel">
-          <div class="flex items-center gap-2 bg-bg border border-border rounded-md px-2.5 py-1.5 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent-dim transition-all">
-            <i class="fa-solid fa-magnifying-glass text-text-3"></i>
-            <input type="text" id="nav-search-input" placeholder="Buscar..." class="bg-transparent border-none outline-none text-text text-xs flex-1 w-full placeholder:text-text-3">
-          </div>
-          
-          <div class="flex items-center gap-1.5 justify-between">
-            <button class="nav-filter-btn flex-1 bg-border/40 hover:bg-border text-text-3 text-[10px] py-1 rounded transition-colors active" data-filter="tags">Tags</button>
-            <button class="nav-filter-btn flex-1 bg-border/40 hover:bg-border text-text-3 text-[10px] py-1 rounded transition-colors active" data-filter="classes">IDs/Classes</button>
-            <button class="nav-filter-btn flex-1 bg-border/40 hover:bg-border text-text-3 text-[10px] py-1 rounded transition-colors active" data-filter="texts">Textos</button>
-          </div>
-        </div>
-        
-        <div class="flex-1 overflow-y-auto overflow-x-auto pb-4" id="navigator-tree">
-          <!-- Populated by ui/navigator.js -->
-          <div class="text-center text-text-3 text-[11px] p-4 italic opacity-70">
-            Nenhum arquivo renderizado
-          </div>
-        </div>
-      </div>
-    </aside>
-
-    <!-- PREVIEW AREA -->
-    <section class="flex-1 bg-bg flex flex-col relative overflow-hidden z-10">
-      
-      <!-- Editor Breadcrumb Bar -->
-      <div class="h-9 px-4 bg-surface border-b border-border flex items-center justify-between text-[11px] shadow-sm">
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-code text-text-3 mr-1"></i>
-          <div class="flex items-center gap-1.5 text-text-2 opacity-50" id="preview-breadcrumb">
-            <span>Sem Documento</span>
-          </div>
-        </div>
-        
-        <!-- View Mode Toggle -->
-        <div class="flex items-center gap-1 bg-panel border border-border rounded-md p-0.5" id="view-mode-toggle">
-           <button id="btn-view-visual" class="px-3 py-1 flex items-center gap-1.5 rounded bg-accent text-white transition-all shadow-sm">
-             <i class="fa-solid fa-eye text-[10px]"></i> Visual
-           </button>
-           <button id="btn-view-code" class="px-3 py-1 flex items-center gap-1.5 rounded text-text-3 hover:text-text-2 transition-all">
-             <i class="fa-solid fa-code text-[10px]"></i> Código
-           </button>
-        </div>
-      </div>
-
-      <!-- Stage -->
-      <div class="flex-1 flex items-center justify-center p-6 overflow-auto" id="preview-stage" style="background-image: radial-gradient(circle at 1px 1px, var(--re-border) 1px, transparent 0); background-size: 20px 20px;">
-        
-        <!-- Shadow DOM Canvas Wrapper -->
-        <div class="hidden w-full max-w-[1280px] h-full mx-auto bg-white shadow-md relative group flex flex-col transition-all duration-300 transform-gpu" id="iframe-wrap">
-          <div class="h-6 bg-border flex items-center shrink-0 px-2 gap-1.5 border-b border-border/50">
-            <div class="flex gap-1">
-              <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
-              <div class="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
-              <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
-            </div>
-            <div class="flex-1 text-center text-[10px] text-text-3 font-mono opacity-50" id="preview-breadcrumb">
-              <!-- Breadcrumb will be here -->
-            </div>
-          </div>
-          <!-- Iframe Canvas -->
-          <iframe id="preview-iframe" class="w-full flex-1 border-none bg-white"></iframe>
-        </div>
-
-        <!-- Code Editor Area (Hidden by default) -->
-        <div id="code-editor-container" class="hidden w-full h-full max-w-[1280px] mx-auto bg-surface border border-border rounded-lg flex flex-col overflow-hidden shadow-xl">
-           <div class="h-8 bg-panel-alt border-b border-border flex items-center px-4 justify-between shrink-0">
-              <span class="text-[10px] font-bold text-text-3 uppercase tracking-widest">Editor de Código</span>
-              <span class="text-[10px] text-text-3 opacity-50">CODEMIRROR / HTML5</span>
-           </div>
-           <!-- Single Textarea for CodeMirror -->
-           <div class="flex-1 w-full overflow-hidden bg-[#0F111A]">
-              <textarea id="code-editor-textarea"></textarea>
-           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- RIGHT INSPECTOR -->
-    <aside id="sidebar-right" class="w-[284px] shrink-0 bg-panel border-l border-border flex flex-col shadow-sm z-20 transition-all duration-300">
-      <div class="px-4 py-2 border-b border-border bg-panel-alt flex items-center shrink-0">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-text-3">Inspector</span>
-      </div>
-      
-      <!-- Empty State -->
-      <div id="inspector-empty" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <div class="w-12 h-12 rounded-full border border-dashed border-border flex items-center justify-center mb-3">
-          <i class="fa-solid fa-wand-magic-sparkles text-text-3"></i>
-        </div>
-        <p class="text-xs text-text-2 mb-1 font-medium">Nenhum elemento selecionado</p>
-        <p class="text-[11px] text-text-3 leading-tight">Clique em um elemento no Navigator para editar suas propriedades.</p>
-      </div>
-
-      <!-- Active State (Hidden by default) -->
-      <div id="inspector-active" class="hidden flex-1 overflow-y-auto w-full flex-col">
-        <!-- Header tag info -->
-        <div class="px-4 py-3 border-b border-border/50 flex items-center gap-2 bg-gradient-to-r from-accent/10 to-transparent">
-          <div class="w-6 h-6 rounded bg-accent/20 text-accent flex items-center justify-center text-xs font-bold font-mono" id="ins-icon">D</div>
-          <div class="flex-1 overflow-hidden">
-            <h3 class="text-xs font-bold text-text truncate" id="ins-tag-name">div</h3>
-            <p class="text-[10px] text-text-3 truncate font-mono" id="ins-path-info">#container .flex</p>
-          </div>
-        </div>
-
-        <!-- Section: Content -->
-        <div class="inspector-section border-b border-border/50" id="section-content">
-          <div class="px-4 py-2.5 flex items-center justify-between cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors" onclick="this.nextElementSibling.classList.toggle('hidden')">
-            <span class="text-[11px] font-bold text-text-2 uppercase tracking-wide flex items-center gap-1.5"><i class="fa-solid fa-align-left text-accent"></i> Conteúdo</span>
-            <i class="fa-solid fa-chevron-down text-[10px] text-text-3"></i>
-          </div>
-          <div class="px-4 pb-4 hidden">
-            <textarea id="ins-content-input" class="w-full h-24 bg-bg border border-border rounded text-xs text-text p-2 outline-none focus:border-accent font-mono resize-none"></textarea>
-            <!-- Live mode removed Apply button here -->
-          </div>
-        </div>
-
-        <!-- Section: ID & Classes -->
-        <div class="inspector-section border-b border-border/50">
-          <div class="px-4 py-2.5 flex items-center justify-between cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors" onclick="this.nextElementSibling.classList.toggle('hidden')">
-            <span class="text-[11px] font-bold text-text-2 uppercase tracking-wide flex items-center gap-1.5"><i class="fa-solid fa-hashtag text-accent"></i> ID e Classes</span>
-            <i class="fa-solid fa-chevron-down text-[10px] text-text-3"></i>
-          </div>
-          <div class="px-4 pb-4">
-             <div class="mb-3">
-               <label class="text-[10px] text-text-3 uppercase font-bold mb-1 block">ID do Elemento</label>
-               <input type="text" id="ins-id-input" placeholder="ex: main-hero" class="w-full bg-bg border border-border rounded px-2 py-1.5 text-xs text-text focus:border-accent outline-none transition-colors font-mono">
-             </div>
-             <div>
-               <label class="text-[10px] text-text-3 uppercase font-bold mb-1 block">Classes HTML</label>
-               <div class="flex items-center bg-bg border border-border rounded px-2 py-1.5 focus-within:border-accent">
-                 <input type="text" id="ins-class-add-input" placeholder="Adicionar classe (ex: flex mt-2)..." class="bg-transparent border-none text-xs text-text outline-none flex-1 w-full" autocomplete="off">
-                 <button id="ins-class-add-btn" class="text-accent hover:text-blue-400 font-bold"><i class="fa-solid fa-plus text-[10px]"></i></button>
-               </div>
-               <div id="ins-classes-container" class="mt-2 flex flex-wrap gap-1.5">
-                 <!-- Badges via JS -->
-               </div>
-             </div>
-          </div>
-        </div>
-
-        <!-- Section: Attributes Contextual -->
-        <div class="inspector-section border-b border-border/50" id="section-attributes">
-          <div class="px-4 py-2.5 flex items-center justify-between cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors" onclick="this.nextElementSibling.classList.toggle('hidden')">
-            <span class="text-[11px] font-bold text-text-2 uppercase tracking-wide flex items-center gap-1.5"><i class="fa-solid fa-list text-accent"></i> Atributos</span>
-            <i class="fa-solid fa-chevron-down text-[10px] text-text-3"></i>
-          </div>
-          <div class="px-4 pb-4 flex flex-col gap-3 hidden">
-             <div id="ins-attributes-contextual" class="flex flex-col gap-2 mb-2">
-               <!-- Campos contextuais por JS -->
-             </div>
-             <div class="h-px bg-border/50 w-full my-1"></div>
-             <p class="text-[10px] text-text-3 font-medium">Outros Atributos</p>
-             <div id="ins-attributes-container" class="flex flex-col gap-2">
-               <!-- Atributos dinamicos via JS -->
-             </div>
-          </div>
-        </div>
-
-        <!-- Section: Visual Styles -->
-        <div class="inspector-section border-b border-border/50">
-          <div class="px-4 py-2.5 flex items-center justify-between cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors" onclick="this.nextElementSibling.classList.toggle('hidden')">
-            <span class="text-[11px] font-bold text-text-2 uppercase tracking-wide flex items-center gap-1.5"><i class="fa-solid fa-palette text-accent"></i> Estilos</span>
-            <i class="fa-solid fa-chevron-down text-[10px] text-text-3"></i>
-          </div>
-          <div class="px-4 pb-4 hidden flex flex-col gap-4" id="ins-visual-styles">
-            
-            <!-- Category: Posição e Layout -->
-            <div>
-              <p class="text-[10px] text-text-3 font-medium border-b border-border/50 pb-1 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><i class="fa-solid fa-layer-group"></i> Posição e Layout</p>
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Display</label>
-                  <select data-style="display" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                    <option value="">Auto</option><option value="block">block</option><option value="flex">flex</option><option value="grid">grid</option><option value="inline-block">inline-block</option><option value="none">none</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Position</label>
-                  <select data-style="position" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                    <option value="">Auto</option><option value="relative">relative</option><option value="absolute">absolute</option><option value="fixed">fixed</option><option value="sticky">sticky</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Top / Bottom</label>
-                  <div class="flex gap-1"><input type="text" data-style="top" placeholder="top" class="w-1/2 bg-bg border border-border rounded px-1.5 py-1 text-xs text-text focus:border-accent outline-none"><input type="text" data-style="bottom" placeholder="bot" class="w-1/2 bg-bg border border-border rounded px-1.5 py-1 text-xs text-text focus:border-accent outline-none"></div>
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Left / Right</label>
-                  <div class="flex gap-1"><input type="text" data-style="left" placeholder="left" class="w-1/2 bg-bg border border-border rounded px-1.5 py-1 text-xs text-text focus:border-accent outline-none"><input type="text" data-style="right" placeholder="right" class="w-1/2 bg-bg border border-border rounded px-1.5 py-1 text-xs text-text focus:border-accent outline-none"></div>
-                </div>
-                <div class="col-span-2 grid grid-cols-2 gap-2">
-                  <div>
-                    <label class="text-[10px] text-text-3 font-bold mb-1 block">Flex Direction</label>
-                    <select data-style="flex-direction" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                      <option value="">Auto</option><option value="row">row</option><option value="column">column</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="text-[10px] text-text-3 font-bold mb-1 block">Z-Index</label>
-                    <input type="text" data-style="z-index" placeholder="auto" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                  </div>
-                  <div>
-                    <label class="text-[10px] text-text-3 font-bold mb-1 block">Justify Content</label>
-                    <input type="text" data-style="justify-content" placeholder="center/space-between" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                  </div>
-                  <div>
-                    <label class="text-[10px] text-text-3 font-bold mb-1 block">Align Items</label>
-                    <input type="text" data-style="align-items" placeholder="center/flex-start" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Category: Tamanho -->
-            <div>
-              <p class="text-[10px] text-text-3 font-medium border-b border-border/50 pb-1 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><i class="fa-solid fa-expand"></i> Tamanho</p>
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Width</label>
-                  <input type="text" data-style="width" placeholder="auto / 100%" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Height</label>
-                  <input type="text" data-style="height" placeholder="auto / 100%" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Max / Min W</label>
-                  <div class="flex gap-1"><input type="text" data-style="max-width" placeholder="max" class="w-1/2 bg-bg border border-border rounded px-1.5 py-1 text-[10px] text-text focus:border-accent outline-none"><input type="text" data-style="min-width" placeholder="min" class="w-1/2 bg-bg border border-border rounded px-1.5 py-1 text-[10px] text-text focus:border-accent outline-none"></div>
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Max / Min H</label>
-                  <div class="flex gap-1"><input type="text" data-style="max-height" placeholder="max" class="w-1/2 bg-bg border border-border rounded px-1.5 py-1 text-[10px] text-text focus:border-accent outline-none"><input type="text" data-style="min-height" placeholder="min" class="w-1/2 bg-bg border border-border rounded px-1.5 py-1 text-[10px] text-text focus:border-accent outline-none"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Category: Espaçamento -->
-            <div>
-              <p class="text-[10px] text-text-3 font-medium border-b border-border/50 pb-1 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><i class="fa-solid fa-arrows-to-dot"></i> Espaçamento</p>
-              <label class="text-[10px] text-text-3 font-bold mb-1 block">Margin (Externo)</label>
-              <input type="text" data-style="margin" placeholder="0px auto (T R B L)" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none mb-2">
-              <label class="text-[10px] text-text-3 font-bold mb-1 block">Padding (Interno)</label>
-              <input type="text" data-style="padding" placeholder="10px 20px (T R B L)" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-            </div>
-
-            <!-- Category: Estilos de Texto -->
-            <div>
-              <p class="text-[10px] text-text-3 font-medium border-b border-border/50 pb-1 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><i class="fa-solid fa-font"></i> Estilo de Texto</p>
-              <div class="grid grid-cols-2 gap-2">
-                <div class="col-span-2">
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Font Family</label>
-                  <input type="text" data-style="font-family" placeholder="Inter, sans-serif" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Font Size</label>
-                  <input type="text" data-style="font-size" placeholder="16px / 1rem" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Font Weight</label>
-                  <select data-style="font-weight" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                    <option value="">Auto</option><option value="400">Regular</option><option value="600">Semibold</option><option value="700">Bold</option><option value="900">Black</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Color</label>
-                  <div class="flex items-center gap-1">
-                     <input type="color" id="style-color-picker" class="w-6 h-6 border-none bg-transparent cursor-pointer rounded">
-                     <input type="text" data-style="color" placeholder="#000 / red" class="flex-1 w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                  </div>
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Line Height / Text Align</label>
-                  <div class="flex gap-1">
-                    <input type="text" data-style="line-height" placeholder="1.5" class="w-1/2 bg-bg border border-border rounded px-1.5 py-1 text-[10px] text-text focus:border-accent outline-none">
-                    <select data-style="text-align" class="w-1/2 bg-bg border border-border rounded px-1.5 py-1 text-[10px] text-text focus:border-accent outline-none">
-                      <option value="">A</option><option value="left">L</option><option value="center">C</option><option value="right">R</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Category: Background -->
-            <div>
-              <p class="text-[10px] text-text-3 font-medium border-b border-border/50 pb-1 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><i class="fa-solid fa-fill-drip"></i> Background</p>
-              <div class="grid grid-cols-2 gap-2">
-                <div class="col-span-2">
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Background Color</label>
-                  <div class="flex items-center gap-1">
-                     <input type="color" id="style-bg-picker" class="w-6 h-6 border-none bg-transparent cursor-pointer rounded">
-                     <input type="text" data-style="background-color" placeholder="#fff / transparent" class="w-full flex-1 bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                  </div>
-                </div>
-                <div class="col-span-2">
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Background Image / Gradients</label>
-                  <input type="text" data-style="background-image" placeholder="url('path/to.jpg') / linear-gradient(...)" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Bg Size</label>
-                  <input type="text" data-style="background-size" placeholder="cover / contain" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Bg Position</label>
-                  <input type="text" data-style="background-position" placeholder="center" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                </div>
-              </div>
-            </div>
-
-            <!-- Category: Bordas -->
-            <div>
-              <p class="text-[10px] text-text-3 font-medium border-b border-border/50 pb-1 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><i class="fa-solid fa-border-all"></i> Bordas</p>
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Border</label>
-                  <input type="text" data-style="border" placeholder="1px solid #000" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                </div>
-                <div>
-                  <label class="text-[10px] text-text-3 font-bold mb-1 block">Border Radius</label>
-                  <input type="text" data-style="border-radius" placeholder="8px / 50%" class="w-full bg-bg border border-border rounded px-2 py-1 text-xs text-text focus:border-accent outline-none">
-                </div>
-              </div>
-            </div>
-
-            <!-- Remove button for Live mode -->
-          </div>
-        </div>
-
-        <!-- Section: Estilos Inline (Raw/Key-Value) -->
-        <div class="inspector-section border-b border-border/50">
-          <div class="px-4 py-2.5 flex items-center justify-between cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors" onclick="this.nextElementSibling.classList.toggle('hidden')">
-            <span class="text-[11px] font-bold text-text-2 uppercase tracking-wide flex items-center gap-1.5"><i class="fa-solid fa-code text-accent"></i> Estilos Customizados</span>
-            <i class="fa-solid fa-chevron-down text-[10px] text-text-3"></i>
-          </div>
-          <div class="px-4 pb-4 hidden flex flex-col gap-3">
-             <div id="ins-custom-styles-container" class="flex flex-col gap-2">
-               <!-- Styles dinâmicos via JS -->
-             </div>
-          </div>
-        </div>
-      </div>
-    </aside>
+    </div>
   </main>
 
-  <footer class="h-6 shrink-0 bg-accent text-white flex items-center px-4 gap-4 text-[10px] font-medium z-50 overflow-hidden shadow-[0_-2px_10px_rgba(37,99,235,0.2)]">
-    <div class="flex items-center gap-2">
-      <i class="fa-solid fa-terminal opacity-70"></i>
-      <span>Renderit.builder</span>
+  <footer id="app-footer"
+    class="h-9 shrink-0 bg-surface border-t border-border flex items-center px-4 justify-between z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
+    
+    <!-- App Info -->
+    <div class="flex items-center gap-4 text-[10px] font-medium text-text-3">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-terminal opacity-70"></i>
+        <span class="text-text-2 uppercase tracking-wider">Renderit.builder</span>
+      </div>
+      <span class="opacity-20">|</span>
+      <span>v0.1.0</span>
     </div>
-    <span class="opacity-40">|</span>
-    <span>v0.1.0</span>
-    <span class="opacity-40">|</span>
-    <div class="flex items-center gap-1.5 ml-auto">
-      <div class="w-1.5 h-1.5 rounded-full bg-green-300 shadow-[0_0_6px_#86efac] animate-pulse"></div>
-      <span id="status-text">Aguardando arquivo</span>
+
+    <!-- Navigation Buttons -->
+    <div class="flex items-center gap-2">
+      <button id="btn-prev" class="h-6 px-4 rounded bg-panel border border-border text-text-3 text-[10px] font-bold uppercase tracking-widest hover:bg-border hover:text-text transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+        <i class="fa-solid fa-chevron-left mr-1.5"></i> Voltar
+      </button>
+      <button id="btn-next" class="h-6 px-4 rounded bg-accent text-white text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 shadow-[0_0_8px_var(--re-accent-dim)] transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+        Próximo <i class="fa-solid fa-chevron-right ml-1.5"></i>
+      </button>
+    </div>
+
+    <!-- Status Indicator -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-1.5">
+        <div class="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_6px_var(--re-success)] animate-pulse"></div>
+        <span id="status-text" class="text-[10px] font-medium text-text-3">Ready</span>
+      </div>
     </div>
   </footer>
 
 </body>
+
 </html>
