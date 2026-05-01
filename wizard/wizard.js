@@ -5,6 +5,7 @@
 
 import { WIZARD_STEPS } from './config.js';
 import { renderStep1, initStep1 } from './steps/step-1-mode.js';
+import { renderStep2, initStep2 } from './steps/step-2-template.js';
 
 // Estado global da sessão de build
 export const state = {
@@ -74,6 +75,11 @@ function renderCurrentStep() {
       initStep1();
       break;
 
+    case 1:
+      container.innerHTML = renderStep2();
+      initStep2();
+      break;
+
     default:
       const stepName = WIZARD_STEPS[state.currentStep];
       container.innerHTML = `
@@ -131,6 +137,8 @@ export function updateNavButtons() {
     // Validação específica por passo
     if (state.currentStep === 0) {
       btnNext.disabled = !state.mode;
+    } else if (state.currentStep === 1) {
+      btnNext.disabled = state.templates.length === 0;
     } else {
       btnNext.disabled = false;
     }
