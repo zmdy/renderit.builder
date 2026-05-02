@@ -36,17 +36,18 @@ export class AddonManager {
         });
       }
 
-      // Se houver um src definido, carrega o JSON e injeta no contexto sob o namespace do addon
+      // Se houver um src definido, carrega o JSON e injeta no contexto sob o namespace do addon (nova estrutura)
       if (src && dataContext) {
         const externalData = await this._tryFetchJson(src);
         if (externalData) {
-          dataContext[name] = Object.assign(dataContext[name] || {}, externalData);
+          if (!dataContext.addons) dataContext.addons = {};
+          dataContext.addons[name] = Object.assign(dataContext.addons[name] || {}, externalData);
         }
       }
 
-      // Pré-renderiza o addon com o dataContext para resolver seus próprios %IF%/%FOREACH%
+      // Pré-renderiza o addon com o dataContext (escopado) para resolver seus próprios %IF%/%FOREACH%
       // antes de injetar no template pai — evita conflitos de parse no template externo.
-      const renderedAddon = this._renderAddon(addonHtml, dataContext);
+      const renderedAddon = this._renderAddon(addonHtml, dataContext, name);
 
       // Substituição exata da tag
       const tag = src ? `%ADDON ${name} src="${src}"%` : `%ADDON ${name}%`;
@@ -66,13 +67,21 @@ export class AddonManager {
    * Renderiza um addon com o contexto de dados, produzindo HTML puro sem tags de template.
    * @param {string} addonHtml 
    * @param {Object} dataContext 
+   * @param {string} addonName
    * @returns {string}
    */
-  _renderAddon(addonHtml, dataContext) {
+  _renderAddon(addonHtml, dataContext, addonName) {
     try {
       const tokens = tokenize(addonHtml);
       const ast = parse(tokens);
-      return render(ast, { data: dataContext });
+      
+      const scopedData = {
+        ...dataContext,
+        ...(dataContext[addonName] || {}), // Retrocompatibilidade (ex: contexto jogado na raiz ou src legado)
+        ...(dataContext.addons && dataContext.addons[addonName] ? dataContext.addons[addonName] : {}) // Nova estrutura
+      };
+
+      return render(ast, { data: scopedData });
     } catch (e) {
       // Se o addon falhar ao renderizar (ex: dados ausentes), retorna o HTML bruto sem as tags de controle
       // para não travar o pipeline do template pai.

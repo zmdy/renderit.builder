@@ -37,7 +37,7 @@ test('SampleGenerator: suporta arrays através do token FOREACH', () => {
   assert.equal(sample.pages[0].content.slider.items[0].title, '');
 });
 
-test('SampleGenerator: resolve namespaces de Addons na raiz', () => {
+test('SampleGenerator: resolve namespaces de Addons em addons.[nome]', () => {
   const templates = [{ name: 'index.html', content: '%ADDON whatsapp%' }];
   const addons = [{
     name: 'whatsapp',
@@ -46,10 +46,10 @@ test('SampleGenerator: resolve namespaces de Addons na raiz', () => {
   
   const sample = generateSample(templates, addons);
   
-  // As chaves do addon devem ir para o objeto root, não para as pages
-  assert.equal(typeof sample.whatsapp, 'object');
-  assert.equal(sample.whatsapp.number, '');
-  assert.equal(sample.whatsapp.text, '');
+  // As chaves do addon devem ir para o objeto addons, não para o root
+  assert.equal(typeof sample.addons.whatsapp, 'object');
+  assert.equal(sample.addons.whatsapp.number, '');
+  assert.equal(sample.addons.whatsapp.text, '');
 });
 
 test('SampleGenerator: produz output fragmentado (splitPages) corretamente', () => {

@@ -141,7 +141,8 @@ function updateSample() {
   if (!editor) return;
 
   const options = { splitPages: state.jsonMode === 'per-page' };
-  const sample = generateSample(state.templates, [], options);
+  const validAddons = (state.detectedAddons || []).filter(a => a.content);
+  const sample = generateSample(state.templates, validAddons, options);
   
   state.sampleJson = sample;
   editor.setValue(JSON.stringify(sample, null, 2));

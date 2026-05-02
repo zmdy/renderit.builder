@@ -201,16 +201,16 @@ async function auditAddons() {
     });
   });
 
-  // Verifica status de cada um
+  // Verifica status de cada um e baixa o conteúdo
   const results = await Promise.all(allAddons.map(async addon => {
     try {
       // 1. Tentar local (relativo ao builder)
-      const localCheck = await fetch(`./addons/${addon.name}.html`, { method: 'HEAD' });
-      if (localCheck.ok) return { ...addon, status: 'local' };
+      const localRes = await fetch(`./addons/${addon.name}.html`);
+      if (localRes.ok) return { ...addon, status: 'local', content: await localRes.text() };
 
       // 2. Tentar GitHub
-      const githubCheck = await fetch(`${THEMES_REPO.addonsBaseUrl}/${addon.name}.html`, { method: 'HEAD' });
-      if (githubCheck.ok) return { ...addon, status: 'remote' };
+      const githubRes = await fetch(`${THEMES_REPO.addonsBaseUrl}/${addon.name}.html`);
+      if (githubRes.ok) return { ...addon, status: 'remote', content: await githubRes.text() };
 
       return { ...addon, status: 'missing' };
     } catch (e) {

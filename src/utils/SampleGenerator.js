@@ -23,9 +23,20 @@ export function generateSample(templates, addons = [], options = { splitPages: f
     });
   }
 
+  sample.addons = {};
   for (const addon of addons) {
     const tokens = tokenize(addon.content);
-    mergeDeep(sample, buildNestedObject(extractVarTypes(tokens)));
+    const addonData = buildNestedObject(extractVarTypes(tokens));
+    
+    if (Object.keys(addonData).length > 0) {
+      // Se as variáveis no HTML já possuírem o prefixo do addon (ex: %slider.title%)
+      // Removemos o aninhamento duplo
+      if (addonData[addon.name] && Object.keys(addonData).length === 1) {
+        sample.addons[addon.name] = addonData[addon.name];
+      } else {
+        sample.addons[addon.name] = addonData;
+      }
+    }
   }
 
   return options.splitPages ? buildSplitSample(sample) : sample;
