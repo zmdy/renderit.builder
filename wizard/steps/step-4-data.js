@@ -14,9 +14,11 @@ let jsonEditor = null;
  * @returns {string} HTML string
  */
 export function renderStep4() {
+  const hasData = !!state.finalJson;
+  
   return `
-    <div class="max-w-5xl w-full px-8 fade-in flex flex-col gap-6 h-full overflow-hidden">
-      <div class="text-center">
+    <div id="step-4-container" class="max-w-5xl w-full px-8 fade-in flex flex-col items-center gap-10 h-full overflow-hidden ${!hasData && currentMode === 'upload' ? 'justify-center' : 'py-8'}">
+      <div class="text-center ${!hasData && currentMode === 'upload' ? 'mb-4' : ''}">
         <h2 class="text-2xl font-bold text-text mb-1">Dados do Projeto</h2>
         <p class="text-text-3 text-sm">Importe seus dados ou edite-os diretamente na interface.</p>
       </div>
@@ -32,7 +34,7 @@ export function renderStep4() {
       </div>
 
       <!-- CONTENT AREA -->
-      <div id="data-content-area" class="flex-1 overflow-y-auto no-scrollbar pb-8">
+      <div id="data-content-area" class="flex-1 overflow-y-auto no-scrollbar pb-8 flex flex-col ${!hasData && currentMode === 'upload' ? 'items-center justify-center' : ''}">
         ${currentMode === 'upload' ? renderUploadMode() : renderEditorMode()}
       </div>
     </div>
@@ -43,11 +45,12 @@ export function renderStep4() {
  * Renderiza a interface de Upload
  */
 function renderUploadMode() {
-  const fileCount = state.finalJson ? '1+ arquivos carregados' : 'Nenhum arquivo carregado';
+  const hasData = !!state.finalJson;
+  const fileCount = hasData ? '1+ arquivos carregados' : 'Nenhum arquivo carregado';
   
   return `
-    <div class="flex flex-col gap-6 fade-in">
-      <div id="data-dropzone" class="dropzone-box flex flex-col items-center justify-center border-2 border-dashed border-border py-16 px-6 hover:border-accent hover:bg-accent-dim transition-all cursor-pointer group rounded-2xl">
+    <div class="w-full flex flex-col gap-6 fade-in ${!hasData ? 'items-center' : ''}">
+      <div id="data-dropzone" class="dropzone-box w-full max-w-2xl flex flex-col items-center justify-center border-2 border-dashed border-border py-16 px-6 hover:border-accent hover:bg-accent-dim transition-all cursor-pointer group rounded-2xl ${hasData ? 'hidden' : ''}">
         <div class="w-16 h-16 rounded-full bg-surface border border-border flex items-center justify-center text-2xl text-text-3 mb-4 group-hover:text-accent group-hover:border-accent transition-colors">
           <i class="fa-solid fa-file-export"></i>
         </div>
@@ -60,7 +63,7 @@ function renderUploadMode() {
         <input type="file" id="input-json" accept=".json" multiple class="hidden">
       </div>
 
-      <div class="bg-surface border border-border rounded-xl p-6">
+      <div id="import-status-panel" class="bg-surface border border-border rounded-xl p-6 ${!hasData ? 'hidden' : ''}">
         <h3 class="text-[11px] font-bold text-text-3 uppercase tracking-widest mb-4">Status da Importação</h3>
         <div class="flex flex-col gap-3">
           <div class="flex items-center justify-between p-3 bg-panel border border-border rounded-lg">
@@ -167,11 +170,31 @@ async function handleJsonFiles(files) {
     }
   }
 
-  const container = document.getElementById('data-content-area');
-  if (container) {
-    container.innerHTML = renderUploadMode();
+  refreshUI();
+}
+
+function refreshUI() {
+  const contentArea = document.getElementById('data-content-area');
+  const dropzone = document.getElementById('data-dropzone');
+  const statusPanel = document.getElementById('import-status-panel');
+  const stepContainer = document.querySelector('.max-w-5xl.w-full.px-8.fade-in.flex.flex-col.gap-6');
+  const hasData = !!state.finalJson;
+
+  if (contentArea) {
+    contentArea.innerHTML = renderUploadMode();
     initUploadEvents();
     validateData();
+  }
+
+  // Ajuste fino de classes para centralização
+  if (stepContainer) {
+    if (hasData) {
+      stepContainer.classList.remove('justify-center');
+      stepContainer.firstElementChild?.classList.remove('mb-4');
+    } else {
+      stepContainer.classList.add('justify-center');
+      stepContainer.firstElementChild?.classList.add('mb-4');
+    }
   }
 }
 

@@ -10,6 +10,7 @@ import { render } from '../../src/core/Renderer.js';
 import { buildStatic } from '../../src/modes/StaticMode.js';
 import { buildManager } from '../../src/modes/ManagerMode.js';
 import { buildLive } from '../../src/modes/LiveMode.js';
+import { THEMES_REPO } from '../config.js';
 
 let buildLogs = [];
 let progress = 0;
@@ -121,7 +122,7 @@ function renderBuildState() {
           <div id="page-selector-container"></div>
         </div>
         <div class="flex-1 relative bg-white">
-           <iframe id="build-preview-iframe" class="w-full h-full border-none" sandbox="allow-same-origin"></iframe>
+           <iframe id="build-preview-iframe" class="w-full h-full border-none" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
         </div>
       </div>
     </div>
@@ -199,6 +200,7 @@ function prepareBuildConfig() {
     data: state.finalJson,
     templates,
     assets: state.assets || {},
+    themesRepoUrl: `${THEMES_REPO.addonsBaseUrl}`.replace('/addons', ''),
     onProgress: (event, payload) => handleBuildProgress(event, payload)
   };
 }

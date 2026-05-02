@@ -1,5 +1,7 @@
 import { AddonError } from './types.js';
 import { tokenize } from './Lexer.js';
+import { parse } from './Parser.js';
+import { render } from './Renderer.js';
 import { scanTemplate } from '../utils/AddonScanner.js';
 
 /**
@@ -8,7 +10,7 @@ import { scanTemplate } from '../utils/AddonScanner.js';
 export class AddonManager {
   constructor(config = {}) {
     this.addonsDir = config.addonsDir || './addons';
-    this.themesRepoUrl = config.themesRepoUrl || 'https://raw.githubusercontent.com/zmdy/renderit.themes/main';
+    this.themesRepoUrl = config.themesRepoUrl || 'https://raw.githubusercontent.com/zmdy/renderit.themes/refs/heads/main';
     this.resolvedAddons = new Map();
   }
 
@@ -42,19 +44,45 @@ export class AddonManager {
         }
       }
 
-      // Substituição exata da tag (re-gerando a tag para garantir o match)
+      // Pré-renderiza o addon com o dataContext para resolver seus próprios %IF%/%FOREACH%
+      // antes de injetar no template pai — evita conflitos de parse no template externo.
+      const renderedAddon = this._renderAddon(addonHtml, dataContext);
+
+      // Substituição exata da tag
       const tag = src ? `%ADDON ${name} src="${src}"%` : `%ADDON ${name}%`;
-      // Usamos replaceAll para garantir que todas as instâncias do mesmo addon sejam trocadas
-      result = result.split(tag).join(addonHtml);
+      result = result.split(tag).join(renderedAddon);
       
       // Fallback para variações de aspas se não deu match direto
       if (src) {
         const tagSingle = `%ADDON ${name} src='${src}'%`;
-        result = result.split(tagSingle).join(addonHtml);
+        result = result.split(tagSingle).join(renderedAddon);
       }
     }
     
     return result;
+  }
+
+  /**
+   * Renderiza um addon com o contexto de dados, produzindo HTML puro sem tags de template.
+   * @param {string} addonHtml 
+   * @param {Object} dataContext 
+   * @returns {string}
+   */
+  _renderAddon(addonHtml, dataContext) {
+    try {
+      const tokens = tokenize(addonHtml);
+      const ast = parse(tokens);
+      return render(ast, { data: dataContext });
+    } catch (e) {
+      // Se o addon falhar ao renderizar (ex: dados ausentes), retorna o HTML bruto sem as tags de controle
+      // para não travar o pipeline do template pai.
+      return addonHtml
+        .replace(/%FOREACH\s[^%]+%/g, '')
+        .replace(/%ENDFOREACH%/g, '')
+        .replace(/%IF\s[^%]+%/g, '')
+        .replace(/%ENDIF%/g, '')
+        .replace(/%ELSE%/g, '');
+    }
   }
 
   /**
@@ -91,14 +119,19 @@ export class AddonManager {
    * @returns {string[]}
    */
   extractAddonKeys(html) {
-    const tokens = tokenize(html);
-    const keys = new Set();
-    for (const token of tokens) {
-      if (token.type === 'VAR' || token.type === 'FOREACH' || token.type === 'IF') {
-        keys.add(token.value);
+    try {
+      const tokens = tokenize(html);
+      const keys = new Set();
+      for (const token of tokens) {
+        if (token.type === 'VAR' || token.type === 'FOREACH' || token.type === 'IF') {
+          keys.add(token.value);
+        }
       }
+      return Array.from(keys);
+    } catch (e) {
+      // Addon com sintaxe interna complexa: retorna array vazio sem travar o build
+      return [];
     }
-    return Array.from(keys);
   }
 
   async _tryFetch(url) {
