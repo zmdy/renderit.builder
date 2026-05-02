@@ -1,4 +1,4 @@
-![Renderit.builder Logo](./assets/images/renderit-builder.png)
+![Renderit.builder Logo](./assets/images/logo-renderit-builder.png)
 
 Renderit.builder is a static site rendering engine built with Vanilla JS. It takes an HTML template with __Magic Tags__ and a JSON content file, and renders static sites with native SEO, zero dependencies, and a 100/100 score on Lighthouse.
 
