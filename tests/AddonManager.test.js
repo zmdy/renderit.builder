@@ -125,7 +125,7 @@ test('AddonManager: carrega JSON externo e injeta no contexto', async () => {
   const result = await manager.resolveAndInject('%ADDON slider src="data.json"%', context);
 
   assert.equal(context.slider.title, 'External Title');
-  assert.ok(result.includes('<div>%slider.title%</div>'));
+  assert.ok(result.includes('<div>External Title</div>'));
   
   restoreMocks();
 });

@@ -23,11 +23,19 @@ test('tokenize: identifica chaves corretamente', () => {
   assert.deepEqual(types, ['VAR', 'FOREACH', 'ENDFOREACH', 'IF', 'ELSE', 'ENDIF', 'PARTIAL', 'ADDON']);
 });
 
-test('tokenize: ParseError em delimitador não fechado', () => {
-  assert.throws(
-    () => tokenize('Texto %aberto e sem fechar'),
-    ParseError
-  );
+test('tokenize: tolera % não fechado como texto literal', () => {
+  const result = tokenize('Texto %aberto e sem fechar');
+  assert.deepEqual(result, [
+    { type: 'TEXT', value: 'Texto %aberto e sem fechar', line: 1 }
+  ]);
+});
+
+test('tokenize: ignora % em contextos de CSS ou JS (com ;, {, } ou quebra de linha)', () => {
+  const result = tokenize('width: 100%; height: %var%');
+  assert.deepEqual(result, [
+    { type: 'TEXT', value: 'width: 100%; height: ', line: 1 },
+    { type: 'VAR', value: 'var', line: 1 }
+  ]);
 });
 
 test('tokenize: escape %% gera texto %', () => {

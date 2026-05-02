@@ -33,14 +33,19 @@ export function tokenize(template) {
     }
 
     const endPercent = template.indexOf('%', nextPercent + 1);
-    if (endPercent === -1) {
-      throw new ParseError(`Delimitador % não fechado na linha ${currentLine}`, {
-        line: currentLine,
-        context: template.slice(nextPercent, nextPercent + 20) + '...'
-      });
+    const tagContentRaw = endPercent !== -1 ? template.slice(nextPercent + 1, endPercent) : null;
+    
+    // Validação heurística: tags válidas não contêm ponto e vírgula, chaves, brackets de HTML ou quebras de linha.
+    // Isso evita que % de CSS (ex: 100%) ou JS (módulo) quebrem o Lexer.
+    const isInvalidTag = !tagContentRaw || /[;{}<>\n]/.test(tagContentRaw);
+
+    if (endPercent === -1 || isInvalidTag) {
+      tokens.push(createTextToken('%', currentLine));
+      currentPos = nextPercent + 1;
+      continue;
     }
 
-    const tagContent = template.slice(nextPercent + 1, endPercent).trim();
+    const tagContent = tagContentRaw.trim();
     tokens.push(createTagToken(tagContent, currentLine));
     
     currentLine += countLines(template.slice(nextPercent, endPercent + 1));
