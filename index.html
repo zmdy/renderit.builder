@@ -11,9 +11,49 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- Custom Base Styles -->
-  <link rel="stylesheet" crossorigin href="https://zmdy.github.io/renderit.editor/renderit-core-style.min.css">
-  <script type="module" crossorigin src="https://zmdy.github.io/renderit.editor/renderit-core.min.js"></script>
+  <script type="module">
+    import { EDITOR_REPO } from './wizard/config.js';
 
+    // Inicialização dinâmica de ativos do editor (Temas e Estilos)
+    async function initEditorTheme() {
+      // 1. Injeta CSS dinamicamente para facilitar manutenção via config.js
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.crossOrigin = 'anonymous';
+      link.href = EDITOR_REPO.styleUrl;
+      document.head.appendChild(link);
+
+      // 2. Importa dinamicamente o motor de temas
+      const { default: ThemeEngine } = await import(EDITOR_REPO.themeEngineUrl);
+
+      // 3. Inicializa o engine
+      await ThemeEngine.init();
+
+      // 4. Vincula UI do Builder ao motor do Editor
+      const btnToggleTheme = document.getElementById('btn-mode-toggle');
+      if (btnToggleTheme) {
+        btnToggleTheme.checked = ThemeEngine.currentMode === 'dark';
+        btnToggleTheme.addEventListener('change', () => {
+          ThemeEngine.toggleMode();
+          btnToggleTheme.checked = ThemeEngine.currentMode === 'dark';
+        });
+      }
+
+      const themeSelector = document.getElementById('theme-selector');
+      if (themeSelector) {
+        themeSelector.value = ThemeEngine.currentThemeKey;
+        themeSelector.addEventListener('change', (e) => {
+          ThemeEngine.loadTheme(e.target.value);
+        });
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initEditorTheme);
+    } else {
+      initEditorTheme();
+    }
+  </script>
   <!-- JSZip -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 

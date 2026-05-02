@@ -13,14 +13,14 @@ import { THEMES_REPO } from '../config.js';
  */
 export function renderStep2() {
   return `
-    <div class="max-w-5xl w-full px-8 fade-in flex flex-col gap-8">
+    <div id="step-2-container" class="max-w-5xl w-full px-8 fade-in flex flex-col items-center gap-10 ${state.templates.length > 0 ? 'py-8' : 'flex-1 justify-center'}">
       <div class="text-center">
         <h2 class="text-2xl font-bold text-text mb-2">Carregue seu template</h2>
         <p class="text-text-3">Arraste seus arquivos .html ou uma pasta inteira para começar.</p>
       </div>
 
       <!-- DROPZONE -->
-      <div id="dropzone" class="dropzone-box flex flex-col items-center justify-center border-2 border-dashed border-border py-12 px-6 hover:border-accent hover:bg-accent-dim transition-all cursor-pointer group">
+      <div id="dropzone" class="dropzone-box w-full max-w-2xl ${state.templates.length > 0 ? 'hidden' : 'flex'} flex-col items-center justify-center border-2 border-dashed border-border py-12 px-6 hover:border-accent hover:bg-accent-dim transition-all cursor-pointer group">
         <div class="w-16 h-16 rounded-full bg-surface border border-border flex items-center justify-center text-2xl text-text-3 mb-4 group-hover:text-accent group-hover:border-accent transition-colors">
           <i class="fa-regular fa-folder-open"></i>
         </div>
@@ -41,7 +41,7 @@ export function renderStep2() {
         <input type="file" id="input-folder" webkitdirectory directory multiple class="hidden">
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 h-[300px]">
+      <div id="results-area" class="${state.templates.length > 0 ? 'grid' : 'hidden'} grid-cols-1 md:grid-cols-2 gap-8 h-[300px]">
         <!-- FILE LIST -->
         <div class="flex flex-col gap-3">
           <h3 class="text-[11px] font-bold text-text-3 uppercase tracking-widest px-1">Arquivos carregados</h3>
@@ -244,11 +244,33 @@ function readFile(file) {
  */
 function refreshUI() {
   const fileList = document.getElementById('file-list');
-  if (fileList) fileList.innerHTML = renderFileList();
-
   const addonList = document.getElementById('addon-list');
+  const dropzone = document.getElementById('dropzone');
+  const resultsArea = document.getElementById('results-area');
+  const container = document.getElementById('step-2-container');
+  const hasFiles = state.templates.length > 0;
+
+  if (fileList) fileList.innerHTML = renderFileList();
   if (addonList) addonList.innerHTML = renderAddonList();
   
+  if (dropzone && resultsArea && container) {
+    if (hasFiles) {
+      dropzone.classList.add('hidden');
+      dropzone.classList.remove('flex');
+      resultsArea.classList.remove('hidden');
+      resultsArea.classList.add('grid');
+      container.classList.remove('flex-1', 'justify-center');
+      container.classList.add('py-8');
+    } else {
+      dropzone.classList.remove('hidden');
+      dropzone.classList.add('flex');
+      resultsArea.classList.add('hidden');
+      resultsArea.classList.remove('grid');
+      container.classList.add('flex-1', 'justify-center');
+      container.classList.remove('py-8');
+    }
+  }
+
   // Re-bind remove buttons
   document.querySelectorAll('.btn-remove-file').forEach(btn => {
     btn.addEventListener('click', async (e) => {
