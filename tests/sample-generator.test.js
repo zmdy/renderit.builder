@@ -65,3 +65,17 @@ test('SampleGenerator: produz output fragmentado (splitPages) corretamente', () 
   assert.equal(result['page-sobre.json'].meta.slug, 'sobre');
   assert.equal(typeof result['page-sobre.json'].content.hero, 'object');
 });
+
+test('SampleGenerator: extrai apenas a variável de blocos IF com condição', () => {
+  const templates = [{
+    name: 'index.html',
+    content: '%IF highlighted == "true"% <div class="highlight"> %title% </div> %ENDIF%'
+  }];
+  
+  const sample = generateSample(templates);
+  
+  assert.equal(sample.pages[0].content.highlighted, '');
+  assert.equal(sample.pages[0].content.title, '');
+  // Não deve existir a chave com a condição inteira
+  assert.ok(!sample.pages[0].content['highlighted == "true"']);
+});

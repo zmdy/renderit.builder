@@ -54,9 +54,16 @@ function extractVarTypes(tokens) {
     } else if (token.type === 'ENDFOREACH') {
       scopeStack.pop();
     } else if (token.type === 'VAR' || token.type === 'IF') {
-      if (SYSTEM_KEYS.includes(token.value) || token.value.startsWith('design.') || token.value.startsWith('site.')) continue;
+      let rawPath = token.value;
       
-      let fullPath = token.value;
+      // Se for um IF, extrai apenas a variável da condição (ex: 'highlighted == "true"' -> 'highlighted')
+      if (token.type === 'IF') {
+        rawPath = rawPath.split(/==|!=/)[0].trim();
+      }
+
+      if (SYSTEM_KEYS.includes(rawPath) || rawPath.startsWith('design.') || rawPath.startsWith('site.')) continue;
+      
+      let fullPath = rawPath;
       // Se estamos dentro de um FOREACH, vincula a variável ao escopo do array atual
       if (scopeStack.length > 0) {
         const currentScope = scopeStack[scopeStack.length - 1];

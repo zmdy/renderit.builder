@@ -30,12 +30,10 @@ test('tokenize: tolera % não fechado como texto literal', () => {
   ]);
 });
 
-test('tokenize: ignora % em contextos de CSS ou JS (com ;, {, } ou quebra de linha)', () => {
-  const result = tokenize('width: 100%; height: %var%');
-  assert.deepEqual(result, [
-    { type: 'TEXT', value: 'width: 100%; height: ', line: 1 },
-    { type: 'VAR', value: 'var', line: 1 }
-  ]);
+test('tokenize: ignora % em contextos de CSS ou JS (com ;, {, }, ,, (, ) ou quebra de linha)', () => {
+  const result = tokenize('width: 100%; height: %var%; transform: translate(-50%, -50%);');
+  assert.equal(result.filter(t => t.type === 'VAR').length, 1);
+  assert.equal(result.find(t => t.type === 'VAR').value, 'var');
 });
 
 test('tokenize: escape %% gera texto %', () => {

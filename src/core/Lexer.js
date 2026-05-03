@@ -35,9 +35,9 @@ export function tokenize(template) {
     const endPercent = template.indexOf('%', nextPercent + 1);
     const tagContentRaw = endPercent !== -1 ? template.slice(nextPercent + 1, endPercent) : null;
     
-    // Validação heurística: tags válidas não contêm ponto e vírgula, chaves, brackets de HTML ou quebras de linha.
-    // Isso evita que % de CSS (ex: 100%) ou JS (módulo) quebrem o Lexer.
-    const isInvalidTag = !tagContentRaw || /[;{}<>\n]/.test(tagContentRaw);
+    // Validação heurística: tags válidas não contêm caracteres de CSS/JS/HTML como ;, {}, (), <>, vírgulas ou quebras de linha.
+    // Isso evita que % de CSS (ex: 100%) ou funções como translate(-50%, -50%) quebrem o Lexer.
+    const isInvalidTag = !tagContentRaw || /[;{},()<>\n]/.test(tagContentRaw);
 
     if (endPercent === -1 || isInvalidTag) {
       tokens.push(createTextToken('%', currentLine));
