@@ -51,12 +51,12 @@ test('StaticMode: E2E build gera estrutura multi-page, SEO e Zip corretamente', 
 
   // 1. Roteamento Multi-page (Pretty URLs)
   assert.ok(files['index.html']);
-  assert.ok(files['sobre/index.html']);
-  assert.ok(files['contato/index.html']);
+  assert.ok(files['sobre.html']);
+  assert.ok(files['contato.html']);
 
   // 2. Renderização (Pipeline Core)
   assert.equal(files['index.html'], '<h1>Home</h1><p>My Awesome Site</p>');
-  assert.equal(files['sobre/index.html'], '<h1>Sobre</h1><p>My Awesome Site</p>');
+  assert.equal(files['sobre.html'], '<h1>Sobre</h1><p>My Awesome Site</p>');
 
   // 3. SEO Files Gerados
   assert.ok(files['robots.txt']);

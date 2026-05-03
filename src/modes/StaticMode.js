@@ -21,7 +21,7 @@ export async function buildStatic(config) {
   const pages = Object.keys(config.templates);
 
   for (const slug of pages) {
-    await processPage(slug, config, addonManager, zip, emit);
+    await processPage(slug, config, addonManager, zip, emit, pages);
   }
 
   generateSeo(zip, config.data, pages, emit);
@@ -33,19 +33,22 @@ export async function buildStatic(config) {
   return blob;
 }
 
-async function processPage(slug, config, addonManager, zip, emit) {
+async function processPage(slug, config, addonManager, zip, emit, pages) {
   emit('page_start', { slug });
   
+  const pageData = config.data.pages?.find(p => p.slug === slug) || {};
+  const pageContext = { ...config.data, ...pageData };
+
   emit('resolving_addons', { slug });
   let template = config.templates[slug];
-  template = await addonManager.resolveAndInject(template, config.data);
+  template = await addonManager.resolveAndInject(template, pageContext);
   
   emit('parsing', { slug });
   const tokens = tokenize(template);
   const ast = parse(tokens);
-  const html = render(ast, { data: config.data });
+  const html = render(ast, { data: pageContext });
 
-  const filepath = slug === 'index' ? 'index.html' : `${slug}/index.html`;
+  const filepath = (slug === 'index' || pages.length === 1) ? 'index.html' : `${slug}.html`;
   zip.addFile(filepath, html);
   
   emit('page_done', { slug, filepath });

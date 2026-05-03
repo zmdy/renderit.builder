@@ -75,16 +75,19 @@ export class AddonManager {
       const tokens = tokenize(addonHtml);
       const ast = parse(tokens);
       
+      const addonData = (dataContext.addons && dataContext.addons[addonName]) ? dataContext.addons[addonName] : (dataContext[addonName] || {});
+      
       const scopedData = {
         ...dataContext,
-        ...(dataContext[addonName] || {}), // Retrocompatibilidade (ex: contexto jogado na raiz ou src legado)
-        ...(dataContext.addons && dataContext.addons[addonName] ? dataContext.addons[addonName] : {}) // Nova estrutura
+        [addonName]: addonData, // Permite %addonName.var%
+        ...addonData             // Permite %var% (unqualified)
       };
 
       return render(ast, { data: scopedData });
     } catch (e) {
-      // Se o addon falhar ao renderizar (ex: dados ausentes), retorna o HTML bruto sem as tags de controle
-      // para não travar o pipeline do template pai.
+      console.warn(`[AddonManager] Erro ao renderizar addon "${addonName}":`, e.message);
+      // Se o addon falhar ao renderizar (ex: dados ausentes ou erro de sintaxe), 
+      // retorna o HTML bruto sem as tags de controle para não travar o pipeline do template pai.
       return addonHtml
         .replace(/%FOREACH\s[^%]+%/g, '')
         .replace(/%ENDFOREACH%/g, '')

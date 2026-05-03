@@ -23,7 +23,7 @@ export async function buildManager(config) {
   const pages = Object.keys(config.templates);
 
   for (const slug of pages) {
-    await processManagerPage(slug, config, addonManager, zip, emit);
+    await processManagerPage(slug, config, addonManager, zip, emit, pages);
   }
 
   generateManagerSeo(zip, config.data, pages, emit);
@@ -36,12 +36,15 @@ export async function buildManager(config) {
   return blob;
 }
 
-async function processManagerPage(slug, config, addonManager, zip, emit) {
+async function processManagerPage(slug, config, addonManager, zip, emit, pages) {
   emit('page_start', { slug });
   
+  const pageData = config.data.pages?.find(p => p.slug === slug) || {};
+  const pageContext = { ...config.data, ...pageData };
+
   emit('resolving_addons', { slug });
   let template = config.templates[slug];
-  template = await addonManager.resolveAndInject(template, config.data);
+  template = await addonManager.resolveAndInject(template, pageContext);
   
   // Inject markers for annotation
   const markedTemplate = injectMarkers(template);
@@ -49,13 +52,13 @@ async function processManagerPage(slug, config, addonManager, zip, emit) {
   emit('parsing', { slug });
   const tokens = tokenize(markedTemplate);
   const ast = parse(tokens);
-  const html = render(ast, { data: config.data });
+  const html = render(ast, { data: pageContext });
 
   emit('annotating', { slug });
   let annotatedHtml = processAnnotations(html);
   annotatedHtml = finalizeAttributes(annotatedHtml);
 
-  const filepath = slug === 'index' ? 'index.html' : `${slug}/index.html`;
+  const filepath = (slug === 'index' || pages.length === 1) ? 'index.html' : `${slug}.html`;
   zip.addFile(filepath, annotatedHtml);
   
   emit('page_done', { slug, filepath });

@@ -29,10 +29,9 @@ export function generateSample(templates, addons = [], options = { splitPages: f
     const addonData = buildNestedObject(extractVarTypes(tokens));
     
     if (Object.keys(addonData).length > 0) {
-      // Se as variáveis no HTML já possuírem o prefixo do addon (ex: %slider.title%)
-      // Removemos o aninhamento duplo
-      if (addonData[addon.name] && Object.keys(addonData).length === 1) {
-        sample.addons[addon.name] = addonData[addon.name];
+      const normalizedName = addon.name.replace(/-/g, '_');
+      if ((addonData[addon.name] || addonData[normalizedName]) && Object.keys(addonData).length === 1) {
+        sample.addons[addon.name] = addonData[addon.name] || addonData[normalizedName];
       } else {
         sample.addons[addon.name] = addonData;
       }
