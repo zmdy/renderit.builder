@@ -57,7 +57,7 @@ function extractVarTypes(tokens) {
       
       // Se for um IF, extrai apenas a variável da condição (ex: 'highlighted == "true"' -> 'highlighted')
       if (token.type === 'IF') {
-        rawPath = rawPath.split(/==|!=/)[0].trim();
+        rawPath = rawPath.split(/[=<>! ]/)[0].trim();
       }
 
       if (SYSTEM_KEYS.includes(rawPath) || rawPath.startsWith('design.') || rawPath.startsWith('site.')) continue;

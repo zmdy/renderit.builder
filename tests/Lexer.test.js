@@ -31,9 +31,10 @@ test('tokenize: tolera % não fechado como texto literal', () => {
 });
 
 test('tokenize: ignora % em contextos de CSS ou JS (com ;, {, }, ,, (, ) ou quebra de linha)', () => {
-  const result = tokenize('width: 100%; height: %var%; transform: translate(-50%, -50%);');
+  const cssAndUrl = 'width: 100%; transform: translate(-50%, -50%); color: %main-color%; url(%path?v=1&t=2#top%);';
+  const result = tokenize(cssAndUrl);
   assert.equal(result.filter(t => t.type === 'VAR').length, 1);
-  assert.equal(result.find(t => t.type === 'VAR').value, 'var');
+  assert.equal(result.find(t => t.type === 'VAR').value, 'main-color');
 });
 
 test('tokenize: escape %% gera texto %', () => {

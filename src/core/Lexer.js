@@ -37,7 +37,8 @@ export function tokenize(template) {
     
     // Validação heurística: tags válidas não contêm caracteres de CSS/JS/HTML como ;, {}, (), <>, vírgulas ou quebras de linha.
     // Isso evita que % de CSS (ex: 100%) ou funções como translate(-50%, -50%) quebrem o Lexer.
-    const isInvalidTag = !tagContentRaw || /[;{},()<>\n]/.test(tagContentRaw);
+    const isIF = tagContentRaw && tagContentRaw.trim().startsWith('IF ');
+    const isInvalidTag = !tagContentRaw || (isIF ? /[;{}[\]\n]/.test(tagContentRaw) : /[;{}[\]\n#&=?,]/.test(tagContentRaw));
 
     if (endPercent === -1 || isInvalidTag) {
       tokens.push(createTextToken('%', currentLine));

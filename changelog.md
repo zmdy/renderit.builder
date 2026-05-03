@@ -47,3 +47,6 @@ Example
 [03-05-26 09:33] FIX - Lexer Robustness: Improved heuristic to ignore % characters in CSS/JS contexts involving commas and parentheses (e.g., translate(-50%, -50%)), preventing false positive variable extraction.
 [03-05-26 09:33] FIX - SampleGenerator IF Parsing: Refined variable extraction from IF tags to capture only the variable name, excluding comparison operators and literal values from the generated JSON scaffold.
 [03-05-26 10:00] FIX - Build Pipeline: Corrected output directory structure (flat slug.html at root). Implemented page-specific data scoping (merging config.pages into context) for correct variable resolution. Enhanced AddonManager scoping to support qualified and unqualified paths, and improved SampleGenerator for better addon naming compatibility.
+[03-05-26 11:20] FIX - Build Pipeline: Implementado matching flexível de páginas (slug/template) e merge de content no root context para resolver falhas de renderização da Hero e variáveis simplificadas.
+[03-05-26 11:20] FIX - AddonManager: Implementada injeção automática de %id% único por instância de addon para garantir funcionamento de scripts e seletores CSS.
+[03-05-26 11:20] FIX - Lexer: Refinada heurística isInvalidTag para permitir operadores de comparação em blocos IF, mantendo robustez contra falsos positivos em CSS/JS.

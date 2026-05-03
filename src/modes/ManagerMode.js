@@ -39,8 +39,8 @@ export async function buildManager(config) {
 async function processManagerPage(slug, config, addonManager, zip, emit, pages) {
   emit('page_start', { slug });
   
-  const pageData = config.data.pages?.find(p => p.slug === slug) || {};
-  const pageContext = { ...config.data, ...pageData };
+  const pageData = config.data.pages?.find(p => p.slug === slug || p.template === `${slug}.html`) || {};
+  const pageContext = { ...config.data, ...pageData, ...(pageData.content || {}) };
 
   emit('resolving_addons', { slug });
   let template = config.templates[slug];

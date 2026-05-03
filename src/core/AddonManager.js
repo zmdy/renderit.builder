@@ -77,10 +77,12 @@ export class AddonManager {
       
       const addonData = (dataContext.addons && dataContext.addons[addonName]) ? dataContext.addons[addonName] : (dataContext[addonName] || {});
       
+      const addonId = `${addonName}-${Math.random().toString(36).substring(2, 7)}`;
       const scopedData = {
         ...dataContext,
         [addonName]: addonData, // Permite %addonName.var%
-        ...addonData             // Permite %var% (unqualified)
+        ...addonData,            // Permite %var% (unqualified)
+        id: addonId              // Injeta um ID único para o addon (ex: %id%)
       };
 
       return render(ast, { data: scopedData });
