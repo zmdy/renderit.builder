@@ -44,12 +44,32 @@ export function generateSample(templates, addons = [], options = { splitPages: f
 
 function extractVarTypes(tokens) {
   const map = new Map();
+  const scopeStack = [];
+
   for (const token of tokens) {
-    if (!['VAR', 'FOREACH', 'IF'].includes(token.type)) continue;
-    if (SYSTEM_KEYS.includes(token.value) || token.value.startsWith('design.') || token.value.startsWith('site.')) continue;
-    
-    if (token.type === 'FOREACH') map.set(token.value, 'array');
-    else if (!map.has(token.value)) map.set(token.value, 'string');
+    if (token.type === 'FOREACH') {
+      const currentScope = scopeStack.length > 0 ? scopeStack[scopeStack.length - 1] + '.' + token.value : token.value;
+      scopeStack.push(currentScope);
+      map.set(currentScope, 'array');
+    } else if (token.type === 'ENDFOREACH') {
+      scopeStack.pop();
+    } else if (token.type === 'VAR' || token.type === 'IF') {
+      if (SYSTEM_KEYS.includes(token.value) || token.value.startsWith('design.') || token.value.startsWith('site.')) continue;
+      
+      let fullPath = token.value;
+      // Se estamos dentro de um FOREACH, vincula a variável ao escopo do array atual
+      if (scopeStack.length > 0) {
+        const currentScope = scopeStack[scopeStack.length - 1];
+        // Adiciona o prefixo do array se a variável já não o possuir
+        if (!fullPath.startsWith(currentScope)) {
+          fullPath = currentScope + '.' + fullPath;
+        }
+      }
+      
+      if (!map.has(fullPath)) {
+        map.set(fullPath, 'string');
+      }
+    }
   }
   return map;
 }
