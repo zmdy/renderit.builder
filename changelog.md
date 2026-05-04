@@ -50,3 +50,4 @@ Example
 [03-05-26 11:20] FIX - Build Pipeline: Implementado matching flexível de páginas (slug/template) e merge de content no root context para resolver falhas de renderização da Hero e variáveis simplificadas.
 [03-05-26 11:20] FIX - AddonManager: Implementada injeção automática de %id% único por instância de addon para garantir funcionamento de scripts e seletores CSS.
 [03-05-26 11:20] FIX - Lexer: Refinada heurística isInvalidTag para permitir operadores de comparação em blocos IF, mantendo robustez contra falsos positivos em CSS/JS.
+[04-05-26 22:45] FIX - Showcase Renderer: Migrated to a no-iframe architecture using direct rendering with Shadow DOM and scoped CSS. Implemented a robust script execution pipeline (new Function) to prevent ghost re-executions and isolation issues.
