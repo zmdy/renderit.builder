@@ -52,3 +52,4 @@ Example
 [03-05-26 11:20] FIX - Lexer: Refinada heurística isInvalidTag para permitir operadores de comparação em blocos IF, mantendo robustez contra falsos positivos em CSS/JS.
 [04-05-26 22:45] FIX - Showcase Renderer: Migrated to a no-iframe architecture using direct rendering with Shadow DOM and scoped CSS. Implemented a robust script execution pipeline (new Function) to prevent ghost re-executions and isolation issues.
 [04-05-26 23:02] UPDATE - Showcase Mock Data: Added accordion.settings.allow_multiple property for component testing.
+[04-05-26 23:16] UPDATE - Showcase Renderer (Partial FIX): Added support for %ELSE% tags and improved IF resolution. Fixed containment of fixed-position elements in preview area.
