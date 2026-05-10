@@ -82,32 +82,89 @@ function extractVarTypes(tokens) {
 
 function buildNestedObject(pathTypeMap) {
   const result = {};
-  for (const path of pathTypeMap.keys()) {
-    const parts = path.split('.');
-    let current = result;
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (i === parts.length - 1) current[part] = current[part] || "";
-      else {
-        if (!current[part]) current[part] = {};
-        current = current[part];
+
+  // Collect all array paths sorted by depth (shallowest first)
+  const arrayPaths = [...pathTypeMap.entries()]
+    .filter(([, type]) => type === 'array')
+    .map(([path]) => path)
+    .sort((a, b) => a.split('.').length - b.split('.').length);
+
+  // Build a prototype item for every array, containing all its child vars/arrays
+  // Returns { protoItem, childArrays } for a given array path prefix
+  function buildProtoItem(arrayPath) {
+    const prefix = arrayPath + '.';
+    const protoItem = {};
+
+    for (const [childPath, childType] of pathTypeMap.entries()) {
+      if (!childPath.startsWith(prefix)) continue;
+
+      // Only direct children (no deeper array intermediaries between us and the child)
+      const relative = childPath.slice(prefix.length);
+      const relativeParts = relative.split('.');
+
+      // Detect if this child is nested inside another array that's inside our array
+      let isDirectChild = true;
+      let checkPath = arrayPath;
+      for (let i = 0; i < relativeParts.length - 1; i++) {
+        checkPath += '.' + relativeParts[i];
+        if (pathTypeMap.get(checkPath) === 'array') {
+          isDirectChild = false;
+          break;
+        }
       }
-    }
-  }
-  
-  for (const [path, type] of pathTypeMap.entries()) {
-    if (type === 'array') {
-      const parts = path.split('.');
-      let current = result;
-      for (let i = 0; i < parts.length - 1; i++) current = current[parts[i]];
-      const last = parts[parts.length - 1];
-      if (typeof current[last] === 'object' && !Array.isArray(current[last])) {
-        current[last] = [current[last]];
+      if (!isDirectChild) continue;
+
+      // Set the value in protoItem
+      const parts = relativeParts;
+      let cur = protoItem;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!cur[parts[i]]) cur[parts[i]] = {};
+        cur = cur[parts[i]];
+      }
+      const leaf = parts[parts.length - 1];
+      if (childType === 'array') {
+        // Nested array inside this array's proto item
+        const nestedProto = buildProtoItem(arrayPath + '.' + relative);
+        cur[leaf] = [nestedProto];
       } else {
-        current[last] = [];
+        cur[leaf] = cur[leaf] !== undefined ? cur[leaf] : '';
       }
     }
+    return protoItem;
   }
+
+  // Place top-level vars (not inside any array)
+  for (const [path, type] of pathTypeMap.entries()) {
+    if (type === 'array') continue;
+    // Check if this var is inside any array
+    const insideArray = arrayPaths.some(ap => path.startsWith(ap + '.'));
+    if (insideArray) continue;
+
+    const parts = path.split('.');
+    let cur = result;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!cur[parts[i]]) cur[parts[i]] = {};
+      cur = cur[parts[i]];
+    }
+    const leaf = parts[parts.length - 1];
+    if (cur[leaf] === undefined) cur[leaf] = '';
+  }
+
+  // Place top-level arrays (not inside any other array)
+  for (const ap of arrayPaths) {
+    const insideArray = arrayPaths.some(other => other !== ap && ap.startsWith(other + '.'));
+    if (insideArray) continue;
+
+    const parts = ap.split('.');
+    let cur = result;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!cur[parts[i]]) cur[parts[i]] = {};
+      cur = cur[parts[i]];
+    }
+    const leaf = parts[parts.length - 1];
+    cur[leaf] = [buildProtoItem(ap)];
+  }
+
   return result;
 }
 
