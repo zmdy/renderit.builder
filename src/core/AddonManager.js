@@ -24,7 +24,7 @@ export class AddonManager {
     let result = template;
     const detectedAddons = scanTemplate(template);
     
-    for (const { name, src } of detectedAddons) {
+    for (const { name, src, raw } of detectedAddons) {
       const addonHtml = await this.resolveAddon(name);
       
       if (!this.resolvedAddons.has(name)) {
@@ -49,15 +49,8 @@ export class AddonManager {
       // antes de injetar no template pai — evita conflitos de parse no template externo.
       const renderedAddon = this._renderAddon(addonHtml, dataContext, name);
 
-      // Substituição exata da tag
-      const tag = src ? `%ADDON ${name} src="${src}"%` : `%ADDON ${name}%`;
-      result = result.split(tag).join(renderedAddon);
-      
-      // Fallback para variações de aspas se não deu match direto
-      if (src) {
-        const tagSingle = `%ADDON ${name} src='${src}'%`;
-        result = result.split(tagSingle).join(renderedAddon);
-      }
+      // Substituição exata da tag usando o valor 'raw' detectado pelo scanner
+      result = result.split(raw).join(renderedAddon);
     }
     
     return result;

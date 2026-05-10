@@ -13,10 +13,16 @@ export function scanTemplate(template) {
   const matches = template.match(/%ADDON\s+([^%]+)%/g) || [];
   
   return matches.map(match => {
-    const tagContent = match.slice(1, -1).trim();
-    const parts = tagContent.split(' src=');
-    const name = parts[0].replace(/^ADDON\s+/, '').trim();
-    const src = parts[1] ? parts[1].replace(/["']/g, '').trim() : null;
-    return { name, src };
+    const tagContent = match.slice(1, -1).trim(); // Remove % and %
+    const contentWithoutAddon = tagContent.replace(/^ADDON\s+/, '').trim();
+    
+    // Extract src if present
+    const srcMatch = contentWithoutAddon.match(/src=["']([^"']+)["']/);
+    const src = srcMatch ? srcMatch[1] : null;
+
+    // The name is the first word of the content
+    const name = contentWithoutAddon.split(/\s+/)[0];
+
+    return { name, src, raw: match };
   });
 }
