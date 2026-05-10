@@ -5,6 +5,7 @@ import { render } from '../core/Renderer.js';
 import { ZipBuilder } from '../utils/ZipBuilder.js';
 import { scanAssets } from '../utils/AssetScanner.js';
 import { generateRobotsTxt, generateSitemapXml, generateHtaccess, generateLlmsTxt } from '../utils/SeoGenerator.js';
+import { optimizeHtml } from '../utils/HtmlOptimizer.js';
 
 /**
  * Orquestra a construção do site no modo Live (zonas dinâmicas + SW).
@@ -43,10 +44,11 @@ async function processLivePage(slug, config, addonManager, zip, emit) {
   emit('parsing', { slug });
   const tokens = tokenize(template);
   const ast = parse(tokens);
-  const html = render(ast, { data: config.data });
+  const rawHtml = render(ast, { data: config.data });
 
   emit('zone_extraction', { slug });
-  const shellHtml = extractAndEncodeLiveZones(html);
+  const optimized = optimizeHtml(rawHtml);
+  const shellHtml = extractAndEncodeLiveZones(optimized);
 
   const filepath = slug === 'index' ? 'index.html' : `${slug}/index.html`;
   zip.addFile(filepath, shellHtml);

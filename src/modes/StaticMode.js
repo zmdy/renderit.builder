@@ -5,6 +5,7 @@ import { render } from '../core/Renderer.js';
 import { ZipBuilder } from '../utils/ZipBuilder.js';
 import { scanAssets } from '../utils/AssetScanner.js';
 import { generateRobotsTxt, generateSitemapXml, generateHtaccess, generateLlmsTxt } from '../utils/SeoGenerator.js';
+import { optimizeHtml } from '../utils/HtmlOptimizer.js';
 
 /**
  * Orquestra a construção do site estático (multi-page).
@@ -46,7 +47,8 @@ async function processPage(slug, config, addonManager, zip, emit, pages) {
   emit('parsing', { slug });
   const tokens = tokenize(template);
   const ast = parse(tokens);
-  const html = render(ast, { data: pageContext });
+  const rawHtml = render(ast, { data: pageContext });
+  const html = optimizeHtml(rawHtml);
 
   const filepath = (slug === 'index' || pages.length === 1) ? 'index.html' : `${slug}.html`;
   zip.addFile(filepath, html);
