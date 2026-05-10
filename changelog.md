@@ -53,3 +53,5 @@ Example
 [04-05-26 22:45] FIX - Showcase Renderer: Migrated to a no-iframe architecture using direct rendering with Shadow DOM and scoped CSS. Implemented a robust script execution pipeline (new Function) to prevent ghost re-executions and isolation issues.
 [04-05-26 23:02] UPDATE - Showcase Mock Data: Added accordion.settings.allow_multiple property for component testing.
 [04-05-26 23:16] UPDATE - Showcase Renderer (Partial FIX): Added support for %ELSE% tags and improved IF resolution. Fixed containment of fixed-position elements in preview area.
+[10-05-26 20:04] FIX - AddonScanner & AddonManager: Improved ADDON tag parsing to correctly extract addon name as the first word, regardless of extra attributes. Replaced fragile src= string split with regex-based extraction. Replaced tag reconstruction with raw tag value for exact string replacement, preventing mismatches.
+[10-05-26 20:18] FIX - SampleGenerator: Rewrote buildNestedObject with a recursive prototype-based approach to correctly infer nested FOREACH arrays. Resolves the bug where categories[].cards was generated as an object instead of an array when processing addons with multi-level loops.
