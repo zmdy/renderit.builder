@@ -17,12 +17,12 @@ const STYLE_CONTENT_REGEX = /<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/i;
 const SCRIPT_CONTENT_REGEX = /<script(?:\s(?!src)[^>]*)?>([\s\S]*?)<\/script>/i;
 
 /**
- * Consolida styles e scripts do HTML final.
+ * Consolida e minifica styles e scripts do HTML final.
  *
  * @param {string} html - O HTML final renderizado.
- * @returns {string} - O HTML otimizado.
+ * @returns {Promise<string>} - O HTML otimizado e minificado.
  */
-export function optimizeHtml(html) {
+export async function optimizeHtml(html) {
   const collectedStyles = [];
   const collectedScripts = [];
 
@@ -46,24 +46,40 @@ export function optimizeHtml(html) {
     return ''; // Remove do lugar original
   });
 
-  // 3. Injetar bloco único de <style> antes de </head>
+  // 3. Minificar e Injetar bloco único de <style>
   if (collectedStyles.length > 0) {
-    const consolidatedStyle = `\n<style id="renderit-styles">\n${collectedStyles.join('\n\n/* --- */\n\n')}\n</style>\n`;
+    let finalStyle = collectedStyles.join('\n');
+    try {
+      const { minify } = await import('https://esm.sh/csso@5.0.5');
+      const result = minify(finalStyle);
+      if (result.css) finalStyle = result.css;
+    } catch (e) {
+      console.warn('[HtmlOptimizer] CSS minification failed, using unminified.', e);
+    }
+
+    const consolidatedStyle = `\n<style id="renderit-styles">${finalStyle}</style>\n`;
     if (html.includes('</head>')) {
       html = html.replace('</head>', `${consolidatedStyle}</head>`);
     } else {
-      // Fallback: prepend ao documento
       html = consolidatedStyle + html;
     }
   }
 
-  // 4. Injetar bloco único de <script> antes de </body>
+  // 4. Minificar e Injetar bloco único de <script>
   if (collectedScripts.length > 0) {
-    const consolidatedScript = `\n<script id="renderit-scripts">\n${collectedScripts.join('\n\n/* --- */\n\n')}\n</script>\n`;
+    let finalScript = collectedScripts.join('\n;\n');
+    try {
+      const { minify } = await import('https://esm.sh/terser@5.31.0');
+      const result = await minify(finalScript, { compress: true, mangle: true });
+      if (result.code) finalScript = result.code;
+    } catch (e) {
+      console.warn('[HtmlOptimizer] JS minification failed, using unminified.', e);
+    }
+
+    const consolidatedScript = `\n<script id="renderit-scripts">${finalScript}</script>\n`;
     if (html.includes('</body>')) {
       html = html.replace('</body>', `${consolidatedScript}</body>`);
     } else {
-      // Fallback: append ao documento
       html = html + consolidatedScript;
     }
   }

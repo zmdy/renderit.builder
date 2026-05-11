@@ -47,7 +47,7 @@ async function processLivePage(slug, config, addonManager, zip, emit) {
   const rawHtml = render(ast, { data: config.data });
 
   emit('zone_extraction', { slug });
-  const optimized = optimizeHtml(rawHtml);
+  const optimized = await optimizeHtml(rawHtml);
   const shellHtml = extractAndEncodeLiveZones(optimized);
 
   const filepath = slug === 'index' ? 'index.html' : `${slug}/index.html`;

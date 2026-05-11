@@ -48,7 +48,7 @@ async function processPage(slug, config, addonManager, zip, emit, pages) {
   const tokens = tokenize(template);
   const ast = parse(tokens);
   const rawHtml = render(ast, { data: pageContext });
-  const html = optimizeHtml(rawHtml);
+  const html = await optimizeHtml(rawHtml);
 
   const filepath = (slug === 'index' || pages.length === 1) ? 'index.html' : `${slug}.html`;
   zip.addFile(filepath, html);
