@@ -37,6 +37,11 @@ test('tokenize: ignora % em contextos de CSS ou JS (com ;, {, }, ,, (, ) ou queb
   assert.equal(result.find(t => t.type === 'VAR').value, 'main-color');
 });
 
+test('tokenize: ignora sequencias de percent-encoding como %2C em URLs', () => {
+  const result = tokenize('https://maps.google.com/maps?bbox=-46.66%2C-23.56%2C-46.62');
+  assert.equal(result.filter(t => t.type === 'VAR').length, 0);
+});
+
 test('tokenize: escape %% gera texto %', () => {
   const result = tokenize('50%% off');
   assert.deepEqual(result, [
