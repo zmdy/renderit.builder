@@ -58,5 +58,6 @@ Example
 [10-05-26 20:49] FEAT - HtmlOptimizer: Created src/utils/HtmlOptimizer.js and integrated into StaticMode and LiveMode pipelines. All addon inline <style> blocks are now consolidated into a single <style id="renderit-styles"> in <head>, and all inline <script> blocks into a single <script id="renderit-scripts"> before </body>. External <script src="..."> tags are preserved in place.
 [16-05-26 19:40] UPDATE - Live Mode Audit Sprint: Audited themes in renderit.themes. Identified and fixed incorrect markup in minifood_menu.html (corrected data-renderit-live to data-renderit-zone and included data-renderit-src). Confirmed builder readiness for Base64 zone extraction and dynamic hydration via renderit-live.js.
 [16-05-26 19:45] FIX - Lexer Robustness: Enhanced Lexer heuristics to require that Magic Keys begin with a letter or underscore, eliminating false positives from URL percent-encoding (such as %2C in the map addon) that generated incorrect keys like "2C-23" in sample.json.
+[16-05-26 19:55] FEAT - Live Mode Dynamic JSON Export: Implemented automatic data-renderit-src detection and JSON extraction during the live build pipeline. The builder now exports the dynamically requested JSON file (e.g. data.json) directly into the ZIP archive, containing the fully structured project data, making the live site immediately functional upon extraction.
 
 

@@ -48,6 +48,10 @@ async function processLivePage(slug, config, addonManager, zip, emit) {
 
   emit('zone_extraction', { slug });
   const optimized = await optimizeHtml(rawHtml);
+  
+  // Extrai as fontes de dados das zonas e gera os arquivos JSON correspondentes
+  extractAndGenerateSrcJsons(optimized, config.data, zip);
+
   const shellHtml = extractAndEncodeLiveZones(optimized);
 
   const filepath = slug === 'index' ? 'index.html' : `${slug}/index.html`;
@@ -124,3 +128,26 @@ function getPath(obj, path) {
   if (!obj) return undefined;
   return path.split('.').reduce((acc, part) => acc && acc[part], obj);
 }
+
+/**
+ * Detecta atributos data-renderit-src no HTML e adiciona os arquivos JSON correspondentes no ZIP
+ * utilizando os dados fornecidos no build.
+ * @param {string} html 
+ * @param {Object} data 
+ * @param {ZipBuilder} zip 
+ */
+function extractAndGenerateSrcJsons(html, data, zip) {
+  const srcPattern = /data-renderit-src="([^"]*)"/gi;
+  let match;
+  while ((match = srcPattern.exec(html)) !== null) {
+    const srcPath = match[1];
+    if (!srcPath) continue;
+
+    // Extrai o nome do arquivo ignorando caminhos de pastas (ex: /data/menu.json -> menu.json)
+    const filename = srcPath.substring(srcPath.lastIndexOf('/') + 1);
+    if (!filename || !filename.endsWith('.json')) continue;
+
+    zip.addFile(filename, JSON.stringify(data, null, 2));
+  }
+}
+

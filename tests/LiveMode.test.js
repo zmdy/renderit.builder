@@ -83,6 +83,11 @@ test('buildLive: pipeline completo gera index.html com zonas e scripts', async (
   assert.ok(files['index.html'].includes('renderit-loading'), 'deve ter placeholder de loading');
   assert.ok(files['index.html'].includes('Live Site'), 'variáveis fora de zona devem ser resolvidas');
 
+  // JSON de dados extraído do data-renderit-src
+  assert.ok(files['menu.json'], 'deve incluir menu.json a partir do data-renderit-src');
+  const menuData = JSON.parse(files['menu.json']);
+  assert.equal(menuData.site.name, 'Live Site', 'JSON de dados deve conter a estrutura original');
+
   // Scripts live
   assert.equal(files['renderit-live.js'], '/* live script */', 'deve incluir renderit-live.js');
   assert.equal(files['sw.js'], '/* sw script */', 'deve incluir sw.js');
