@@ -36,47 +36,161 @@ export async function buildLive(config) {
 
 async function processLivePage(slug, config, addonManager, zip, emit) {
   emit('page_start', { slug });
-  emit('resolving_addons', { slug });
-
+  
   let template = config.templates[slug];
-  template = await addonManager.resolveAndInject(template, config.data);
+
+  emit('zone_extraction', { slug });
+
+  // Extrair zonas com tokens brutos ANTES do render e da injeção global.
+  // Os addons DENTRO da zona serão expandidos em modo RAW (preservando %FOREACH%).
+  const { templateWithPlaceholders, zoneMap } = await extractZonesBeforeRender(template, addonManager);
+
+  emit('resolving_addons', { slug });
+  // Injeta addons fora das zonas em modo pre-renderizado com scoping adequado.
+  const staticShell = await addonManager.resolveAndInject(templateWithPlaceholders, config.data);
 
   emit('parsing', { slug });
-  const tokens = tokenize(template);
+  const tokens = tokenize(staticShell);
   const ast = parse(tokens);
   const rawHtml = render(ast, { data: config.data });
 
-  emit('zone_extraction', { slug });
-  const optimized = await optimizeHtml(rawHtml);
-  
-  // Extrai as fontes de dados das zonas e gera os arquivos JSON correspondentes
-  extractAndGenerateSrcJsons(optimized, config.data, zip);
+  // Restaurar as zonas encodadas no HTML já renderizado
+  const htmlWithZones = restoreEncodedZones(rawHtml, zoneMap);
+  const optimized = await optimizeHtml(htmlWithZones);
 
-  const shellHtml = extractAndEncodeLiveZones(optimized);
+  // Gerar os arquivos JSON para cada zona (usa o template original para detectar src)
+  extractAndGenerateSrcJsons(template, config.data, zip);
 
-  const filepath = slug === 'index' ? 'index.html' : `${slug}/index.html`;
+  // Injetar os scripts de runtime do Live Mode
+  const shellHtml = injectLiveScriptTags(optimized);
+
+  const totalPages = Object.keys(config.templates).length;
+  const filepath = (slug === 'index' || totalPages === 1) ? 'index.html' : `${slug}/index.html`;
   zip.addFile(filepath, shellHtml);
   emit('page_done', { slug, filepath });
 }
 
+
 /**
- * Localiza todos os data-renderit-zone, encoda o template interno em Base64
- * e substitui o conteúdo por um placeholder de loading.
+ * Injeta no HTML as tags de script necessárias para o Live Mode.
+ * Insere <script src="renderit-live.js" defer> antes do </body>.
+ * (O registro do Service Worker é feito internamente pelo renderit-live.js)
  * @param {string} html
  * @returns {string}
  */
-export function extractAndEncodeLiveZones(html) {
-  const zonePattern = /(<[^>]+data-renderit-zone="[^"]*"[^>]*>)([\s\S]*?)(<\/[a-z][a-z0-9]*>)/gi;
-  
-  return html.replace(zonePattern, (match, openTag, innerContent, closeTag) => {
-    const trimmed = innerContent.trim();
-    if (!trimmed) return match;
+function injectLiveScriptTags(html) {
+  const liveScript = `<script src="renderit-live.js" defer></script>`;
+  const injection = `\n${liveScript}\n`;
 
-    const encoded = encodeBase64(trimmed);
-    const tagWithTemplate = openTag.replace('>', ` data-renderit-template="${encoded}">`);
-    const loading = '<div class="renderit-loading"></div>';
-    return `${tagWithTemplate}${loading}${closeTag}`;
-  });
+  if (html.includes('</body>')) {
+    return html.replace('</body>', `${injection}</body>`);
+  }
+  return html + injection;
+}
+
+
+/**
+ * Extrai zonas do template ANTES da renderização, salvando os tokens brutos em Base64.
+ * Substitui o conteúdo por um marcador temporário que não será processado pelo render().
+ * @param {string} html 
+ * @param {Object} addonManager
+ * @returns {Promise<{templateWithPlaceholders: string, zoneMap: Object}>}
+ */
+export async function extractZonesBeforeRender(html, addonManager = null) {
+  const openPattern = /<([a-z][a-z0-9]*)([^>]*?data-renderit-zone="[^"]*"[^>]*?)(?:\s*\/>|>)/gi;
+  let result = '';
+  let lastIndex = 0;
+  let match;
+  let zoneCounter = 0;
+  const zoneMap = {};
+
+  while ((match = openPattern.exec(html)) !== null) {
+    const tagName = match[1].toLowerCase();
+    const fullOpenTag = match[0];
+    const openTagStart = match.index;
+    const contentStart = openTagStart + fullOpenTag.length;
+
+    let depth = 1;
+    let pos = contentStart;
+    let innerEnd = -1;
+
+    while (pos < html.length && depth > 0) {
+      const nextOpen  = html.indexOf(`<${tagName}`, pos);
+      const nextClose = html.indexOf(`</${tagName}>`, pos);
+
+      if (nextClose === -1) break; // HTML malformado
+
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        // Verifica que é um tag de abertura real
+        const afterTagName = html[nextOpen + 1 + tagName.length];
+        if (afterTagName === '>' || afterTagName === ' ' || afterTagName === '\n' || afterTagName === '\t' || afterTagName === '/') {
+          depth++;
+        }
+        pos = nextOpen + 1;
+      } else {
+        depth--;
+        if (depth === 0) innerEnd = nextClose;
+        pos = nextClose + `</${tagName}>`.length;
+      }
+    }
+
+    if (innerEnd === -1) continue; // zona malformada
+
+    const innerContent = html.slice(contentStart, innerEnd).trim();
+    const closeTagFull = `</${tagName}>`;
+    const zoneEnd = innerEnd + closeTagFull.length;
+
+    // Adiciona o HTML antes desta zona
+    result += html.slice(lastIndex, openTagStart);
+
+    if (!innerContent) {
+      // Zona vazia
+      result += html.slice(openTagStart, zoneEnd);
+    } else {
+      let zoneHtmlWithRawAddons = innerContent;
+      if (addonManager) {
+        zoneHtmlWithRawAddons = await addonManager.resolveAndInjectRaw(innerContent);
+      }
+      
+      const encoded = encodeBase64(zoneHtmlWithRawAddons);
+      const tagWithTemplate = fullOpenTag.replace('>', ` data-renderit-template="${encoded}">`);
+      
+      const zoneId = `__RENDERIT_ZONE_${zoneCounter++}__`;
+      zoneMap[zoneId] = `${tagWithTemplate}<div class="renderit-loading"></div>${closeTagFull}`;
+      
+      result += zoneId; // Placeholder
+    }
+
+    lastIndex = zoneEnd;
+    openPattern.lastIndex = lastIndex;
+  }
+
+  result += html.slice(lastIndex);
+  return { templateWithPlaceholders: result, zoneMap };
+}
+
+/**
+ * Restaura as zonas originais (agora encodadas) de volta no HTML após o render().
+ * @param {string} html 
+ * @param {Object} zoneMap 
+ * @returns {string}
+ */
+export function restoreEncodedZones(html, zoneMap) {
+  let result = html;
+  for (const [zoneId, zoneHtml] of Object.entries(zoneMap)) {
+    result = result.replace(zoneId, zoneHtml);
+  }
+  return result;
+}
+
+/**
+ * Para compatibilidade com os testes unitários originais.
+ * @param {string} html
+ * @returns {Promise<string>}
+ */
+export async function extractAndEncodeLiveZones(html) {
+  const { templateWithPlaceholders, zoneMap } = await extractZonesBeforeRender(html);
+  return restoreEncodedZones(templateWithPlaceholders, zoneMap);
 }
 
 async function packLiveScripts(zip, config, emit) {
@@ -130,24 +244,33 @@ function getPath(obj, path) {
 }
 
 /**
- * Detecta atributos data-renderit-src no HTML e adiciona os arquivos JSON correspondentes no ZIP
- * utilizando os dados fornecidos no build.
- * @param {string} html 
- * @param {Object} data 
- * @param {ZipBuilder} zip 
+ * Detecta pares data-renderit-zone + data-renderit-src no mesmo elemento e
+ * gera um arquivo JSON por zona contendo os dados relevantes.
+ *
+ * Estratégia de resolução do payload:
+ *   1. data.addons[zoneName]  — namespace exato da zona
+ *   2. data.addons            — todos os addons (a zona pode conter vários)
+ *   3. {}                     — fallback vazio
+ * @param {string} html
+ * @param {Object} data
+ * @param {ZipBuilder} zip
  */
 function extractAndGenerateSrcJsons(html, data, zip) {
-  const srcPattern = /data-renderit-src="([^"]*)"/gi;
+  const zonePattern = /data-renderit-zone="([^"]+)"[^>]*data-renderit-src="([^"]+)"|data-renderit-src="([^"]+)"[^>]*data-renderit-zone="([^"]+)"/gi;
   let match;
-  while ((match = srcPattern.exec(html)) !== null) {
-    const srcPath = match[1];
-    if (!srcPath) continue;
+  while ((match = zonePattern.exec(html)) !== null) {
+    const zoneName = match[1] || match[4];
+    const srcPath  = match[2] || match[3];
+    if (!zoneName || !srcPath) continue;
 
-    // Extrai o nome do arquivo ignorando caminhos de pastas (ex: /data/menu.json -> menu.json)
     const filename = srcPath.substring(srcPath.lastIndexOf('/') + 1);
     if (!filename || !filename.endsWith('.json')) continue;
 
-    zip.addFile(filename, JSON.stringify(data, null, 2));
+    // Prioridade: namespace exato > todos os addons > vazio
+    const exact   = getPath(data, `addons.${zoneName}`);
+    const payload = exact ?? getPath(data, 'addons') ?? {};
+    zip.addFile(filename, JSON.stringify(payload, null, 2));
   }
 }
+
 

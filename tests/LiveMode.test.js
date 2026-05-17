@@ -16,12 +16,12 @@ function decodeB64(str) {
 
 // ─── Testes de extractAndEncodeLiveZones (unitário puro) ──────────────────
 
-test('extractAndEncodeLiveZones: encoda template em Base64 e injeta loading', () => {
+test('extractAndEncodeLiveZones: encoda template em Base64 e injeta loading', async () => {
   const html = `<div data-renderit-zone="menu" data-renderit-src="/data/menu.json">
     <ul><li>%item.name%</li></ul>
   </div>`;
 
-  const result = extractAndEncodeLiveZones(html);
+  const result = await extractAndEncodeLiveZones(html);
 
   assert.ok(result.includes('data-renderit-template='), 'deve adicionar data-renderit-template');
   assert.ok(result.includes('renderit-loading'), 'deve incluir o placeholder de loading');
@@ -34,16 +34,40 @@ test('extractAndEncodeLiveZones: encoda template em Base64 e injeta loading', ()
   assert.ok(decoded.includes('%item.name%'), 'conteúdo decodificado deve ter o template original');
 });
 
-test('extractAndEncodeLiveZones: ignora elementos sem template interno', () => {
+test('extractAndEncodeLiveZones: ignora elementos sem template interno', async () => {
   const html = `<div data-renderit-zone="vazio" data-renderit-src="/data.json"></div>`;
-  const result = extractAndEncodeLiveZones(html);
+  const result = await extractAndEncodeLiveZones(html);
   assert.ok(!result.includes('data-template='), 'não deve adicionar data-template em zonas vazias');
 });
 
-test('extractAndEncodeLiveZones: preserva HTML sem zonas intocado', () => {
+test('extractAndEncodeLiveZones: preserva HTML sem zonas intocado', async () => {
   const html = '<h1>Título</h1><p>Sem zonas aqui</p>';
-  const result = extractAndEncodeLiveZones(html);
+  const result = await extractAndEncodeLiveZones(html);
   assert.equal(result, html);
+});
+test('extractAndEncodeLiveZones: captura conteudo completo em HTML aninhado', async () => {
+  // Zona <section> com <div> > <div> > <ul> aninhados — o bug anterior parava no primeiro </div>
+  const html = `<section data-renderit-zone="menu" data-renderit-src="data.json">
+    <div class="container">
+      <div class="inner">
+        <ul>%FOREACH categories%<li>%title%</li>%ENDFOREACH%</ul>
+      </div>
+    </div>
+  </section>`;
+
+  const result = await extractAndEncodeLiveZones(html);
+
+  assert.ok(result.includes('data-renderit-template='), 'deve adicionar data-renderit-template');
+  assert.ok(result.includes('renderit-loading'), 'deve incluir o placeholder de loading');
+
+  const match = result.match(/data-renderit-template="([^"]+)"/);
+  assert.ok(match, 'deve conter atributo data-renderit-template');
+  const decoded = decodeB64(match[1]);
+
+  // O conteúdo completo — incluindo os divs internos — deve estar encodado
+  assert.ok(decoded.includes('class="container"'), 'conteudo completo da zona deve estar no template');
+  assert.ok(decoded.includes('%FOREACH categories%'), 'template com tokens deve estar intacto');
+  assert.ok(!result.includes('%FOREACH categories%'), 'tokens originais devem ter sido removidos do HTML shell');
 });
 
 // ─── Testes de buildLive (E2E com mocks) ─────────────────────────────────
@@ -83,14 +107,18 @@ test('buildLive: pipeline completo gera index.html com zonas e scripts', async (
   assert.ok(files['index.html'].includes('renderit-loading'), 'deve ter placeholder de loading');
   assert.ok(files['index.html'].includes('Live Site'), 'variáveis fora de zona devem ser resolvidas');
 
-  // JSON de dados extraído do data-renderit-src
+  // JSON de dados extraído do data-renderit-src — apenas o namespace da zona
   assert.ok(files['menu.json'], 'deve incluir menu.json a partir do data-renderit-src');
   const menuData = JSON.parse(files['menu.json']);
-  assert.equal(menuData.site.name, 'Live Site', 'JSON de dados deve conter a estrutura original');
+  // Deve conter os dados do addon 'menu', NÃO o config.data inteiro
+  assert.equal(menuData.site, undefined, 'JSON da zona nao deve conter dados globais do site');
 
-  // Scripts live
-  assert.equal(files['renderit-live.js'], '/* live script */', 'deve incluir renderit-live.js');
-  assert.equal(files['sw.js'], '/* sw script */', 'deve incluir sw.js');
+  // Tags de runtime Live Mode injetadas no HTML
+  assert.ok(files['index.html'].includes('src="renderit-live.js"'), 'deve injetar script src renderit-live.js no HTML');
+
+  // Scripts live no ZIP
+  assert.equal(files['renderit-live.js'], '/* live script */', 'deve incluir renderit-live.js no ZIP');
+  assert.equal(files['sw.js'], '/* sw script */', 'deve incluir sw.js no ZIP');
 
   // SEO
   assert.ok(files['robots.txt'], 'deve incluir robots.txt');
@@ -120,4 +148,20 @@ test('buildLive: fallback gracioso quando scripts live não estão disponíveis'
 
   assert.ok(files['index.html'], 'deve gerar index.html mesmo sem scripts live');
   assert.equal(files['renderit-live.js'], undefined, 'não deve incluir script que falhou');
+});
+
+test('buildLive: template unico gera index.html na raiz sem subpasta', async () => {
+  globalThis.fetch = async () => ({ ok: false });
+
+  const config = {
+    templates: { minifood_menu: '<h1>%site.name%</h1>' },
+    data: { site: { name: 'Test', url: 'https://x.com', description: 'X' } },
+    onProgress: () => {}
+  };
+
+  const blob = await buildLive(config);
+  const files = blob.mockFiles;
+
+  assert.ok(files['index.html'], 'template unico deve gerar index.html na raiz');
+  assert.equal(files['minifood_menu/index.html'], undefined, 'nao deve criar subpasta para template unico');
 });

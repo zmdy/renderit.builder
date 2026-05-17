@@ -57,6 +57,26 @@ export class AddonManager {
   }
 
   /**
+   * Resolve e injeta todos os addons encontrados em um template, MAS NÃO PRE-RENDERIZA.
+   * Substitui apenas %id%. Isso garante que o Live Mode extraia o template bruto do addon.
+   * @param {string} template 
+   * @returns {Promise<string>}
+   */
+  async resolveAndInjectRaw(template) {
+    let result = template;
+    const detectedAddons = scanTemplate(template);
+    
+    for (const { name, raw } of detectedAddons) {
+      const addonHtml = await this.resolveAddon(name);
+      const addonId = `${name}-${Math.random().toString(36).substring(2, 7)}`;
+      const rawInjected = addonHtml.replace(/%id%/g, addonId);
+      result = result.split(raw).join(rawInjected);
+    }
+    
+    return result;
+  }
+
+  /**
    * Renderiza um addon com o contexto de dados, produzindo HTML puro sem tags de template.
    * @param {string} addonHtml 
    * @param {Object} dataContext 

@@ -59,5 +59,6 @@ Example
 [16-05-26 19:40] UPDATE - Live Mode Audit Sprint: Audited themes in renderit.themes. Identified and fixed incorrect markup in minifood_menu.html (corrected data-renderit-live to data-renderit-zone and included data-renderit-src). Confirmed builder readiness for Base64 zone extraction and dynamic hydration via renderit-live.js.
 [16-05-26 19:45] FIX - Lexer Robustness: Enhanced Lexer heuristics to require that Magic Keys begin with a letter or underscore, eliminating false positives from URL percent-encoding (such as %2C in the map addon) that generated incorrect keys like "2C-23" in sample.json.
 [16-05-26 19:55] FEAT - Live Mode Dynamic JSON Export: Implemented automatic data-renderit-src detection and JSON extraction during the live build pipeline. The builder now exports the dynamically requested JSON file (e.g. data.json) directly into the ZIP archive, containing the fully structured project data, making the live site immediately functional upon extraction.
+[16-05-26 21:47] FIX - Live Mode Architecture: Refactored LiveMode.js to use a dual-mode injection system (Raw vs Pre-rendered) via AddonManager.resolveAndInjectRaw, preserving %FOREACH% tokens inside data-renderit-zone tags. Upgraded renderit-live.js with a recursive depth-parser for nested FOREACH loops and a deep fallback mechanism in resolveVar for robust namespace resolution.
 
 
