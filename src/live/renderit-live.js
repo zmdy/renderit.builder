@@ -23,6 +23,13 @@
     return val ?? '';
   }
 
+  function renderIf(tpl, data) {
+    return tpl.replace(/%IF\s+([^%]+)%([\s\S]*?)(?:%ELSE%([\s\S]*?))?%ENDIF%/g, (_, cond, truthy, falsy) => {
+      const val = resolveVar(cond.trim(), data);
+      return (val && val !== 'false' && val !== '0') ? truthy : (falsy || '');
+    });
+  }
+
   function renderForeach(tpl, data) {
     let result = '';
     let pos = 0;
@@ -83,9 +90,12 @@
             
           let scopedData = typeof item === 'object' && item !== null ? Object.assign({}, data, item) : data;
           out = renderForeach(out, scopedData);
+          out = renderIf(out, scopedData);
           
-          return out.replace(/%([a-zA-Z0-9_.]+)%/g, (m, p) =>
-            escapeHtml(String(resolveVar(p, item) ?? resolveVar(p, data) ?? '')));
+          return out.replace(/%([a-zA-Z0-9_.]+)%/g, (m, p) => {
+            if (p === 'ENDIF' || p === 'ELSE' || p === 'ENDFOREACH') return m;
+            return escapeHtml(String(resolveVar(p, item) ?? resolveVar(p, data) ?? ''));
+          });
         }).join('');
       }
       
@@ -96,11 +106,11 @@
 
   function renderTemplate(tpl, data) {
     tpl = renderForeach(tpl, data);
-    tpl = tpl.replace(/%IF\s+([^%]+)%([\s\S]*?)(?:%ELSE%([\s\S]*?))?%ENDIF%/g, (_, cond, truthy, falsy) => {
-      const val = resolveVar(cond.trim(), data);
-      return (val && val !== 'false' && val !== '0') ? truthy : (falsy || '');
+    tpl = renderIf(tpl, data);
+    tpl = tpl.replace(/%([a-zA-Z0-9_.]+)%/g, (m, p) => {
+      if (p === 'ENDIF' || p === 'ELSE' || p === 'ENDFOREACH') return m;
+      return escapeHtml(String(resolveVar(p, data) ?? ''));
     });
-    tpl = tpl.replace(/%([a-zA-Z0-9_.]+)%/g, (_, p) => escapeHtml(String(resolveVar(p, data) ?? '')));
     return tpl.replace(/%%/g, '%');
   }
 
@@ -139,6 +149,14 @@
     }
 
     zone.innerHTML = renderTemplate(template, data);
+
+    const scripts = zone.querySelectorAll('script');
+    scripts.forEach(oldScript => {
+      const newScript = document.createElement('script');
+      Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+      newScript.textContent = oldScript.textContent;
+      oldScript.parentNode.replaceChild(newScript, oldScript);
+    });
   }
 
   // ─── Registro do Service Worker ───────────────────────────────────────────
